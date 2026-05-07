@@ -191,6 +191,33 @@ CREATE TABLE IF NOT EXISTS pengeluaran (
 conn.commit()
 
 # ====================================
+# TABEL BAHAN BAKU
+# ====================================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bahan_baku (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama TEXT,
+    stok INTEGER,
+    satuan TEXT
+)
+""")
+
+# ====================================
+# TABEL PRODUKSI
+# ====================================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS produksi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tanggal TEXT,
+    nama_produk TEXT,
+    jumlah INTEGER
+)
+""")
+
+conn.commit()
+
+
+# ====================================
 # LOGIN
 # ====================================
 USERNAME = "admin"
@@ -223,20 +250,25 @@ if not st.session_state.login:
 
     st.stop()
 
+```python id="menu-produksi"
 # ====================================
 # SIDEBAR
 # ====================================
-st.sidebar.title("📊 Menu")
+st.sidebar.title("🌿 Manajemen Usaha")
+
+st.sidebar.markdown("---")
 
 menu = st.sidebar.radio(
     "Pilih Menu",
     [
-        "Dashboard",
-        "Produk",
-        "Penjualan",
-        "Pengeluaran",
-        "Laporan",
-        "Backup Database"
+        "📈 Dashboard",
+        "🧪 Bahan Baku",
+        "🏭 Produksi",
+        "📦 Produk Jadi",
+        "🛒 Penjualan",
+        "💸 Pengeluaran",
+        "📄 Laporan",
+        "💾 Backup Database"
     ]
 )
 
@@ -305,6 +337,132 @@ if menu == "Dashboard":
 
     st.dataframe(
         stok_tipis,
+        use_container_width=True
+    )
+```python id="fitur-produksi"
+# ====================================
+# BAHAN BAKU
+# ====================================
+elif menu == "🧪 Bahan Baku":
+
+    st.title("🧪 Data Bahan Baku")
+
+    with st.form("form_bahan"):
+
+        nama = st.text_input("Nama Bahan")
+
+        stok = st.number_input(
+            "Stok",
+            min_value=0
+        )
+
+        satuan = st.selectbox(
+            "Satuan",
+            ["Kg", "Gram", "Liter", "Pcs"]
+        )
+
+        submit = st.form_submit_button(
+            "Tambah Bahan"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO bahan_baku
+                (nama, stok, satuan)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    nama,
+                    stok,
+                    satuan
+                )
+            )
+
+            conn.commit()
+
+            st.success(
+                "Bahan berhasil ditambahkan"
+            )
+
+    bahan_df = pd.read_sql(
+        "SELECT * FROM bahan_baku",
+        conn
+    )
+
+    st.dataframe(
+        bahan_df,
+        use_container_width=True
+    )
+
+# ====================================
+# PRODUKSI
+# ====================================
+elif menu == "🏭 Produksi":
+
+    st.title("🏭 Produksi Hari Ini")
+
+    with st.form("form_produksi"):
+
+        nama_produk = st.text_input(
+            "Nama Produk"
+        )
+
+        jumlah = st.number_input(
+            "Jumlah Produksi",
+            min_value=1
+        )
+
+        submit = st.form_submit_button(
+            "Simpan Produksi"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO produksi
+                (tanggal, nama_produk, jumlah)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    nama_produk,
+                    jumlah
+                )
+            )
+
+            conn.commit()
+
+            st.success(
+                "Data produksi berhasil disimpan"
+            )
+
+    produksi_df = pd.read_sql(
+        "SELECT * FROM produksi",
+        conn
+    )
+
+    st.dataframe(
+        produksi_df,
+        use_container_width=True
+    )
+
+# ====================================
+# PRODUK JADI
+# ====================================
+elif menu == "📦 Produk Jadi":
+
+    st.title("📦 Produk Jadi")
+
+    produk_df = pd.read_sql(
+        "SELECT * FROM produk",
+        conn
+    )
+
+    st.dataframe(
+        produk_df,
         use_container_width=True
     )
 
