@@ -120,30 +120,20 @@ elif menu == "Bahan Baku":
 
     st.title("🧪 Bahan Baku")
 
-    bahan = pd.read_sql("SELECT * FROM bahan", conn)
-
-    st.dataframe(bahan, use_container_width=True)
-
-    st.subheader("Tambah Bahan")
-
-    nama = st.text_input("Nama bahan")
-    stok = st.number_input("Stok", min_value=0.0)
-    satuan = st.selectbox("Satuan", ["kg", "liter", "tabung"])
+    nama = st.text_input("Nama Bahan")
+    stok = st.number_input("Stok", min_value=0)
+    satuan = st.selectbox("Satuan", ["kg", "liter", "pcs", "tabung"])
 
     if st.button("Tambah"):
+        c.execute("""
+            INSERT INTO bahan (nama, stok, satuan)
+            VALUES (?, ?, ?)
+        """, (nama, stok, satuan))
 
-        if nama == "":
-            st.error("Nama tidak boleh kosong")
-        else:
-            c.execute("""
-                INSERT INTO bahan (nama, stok, satuan)
-                VALUES (?, ?, ?)
-            """, (nama, stok, satuan))
+        conn.commit()
+        st.success("Bahan masuk")
 
-            conn.commit()
-            st.success("Bahan berhasil ditambah")
-            st.rerun()
-
+    st.dataframe(pd.read_sql("SELECT * FROM bahan", conn))
 # ======================
 # PRODUKSI (FIX TOTAL)
 # ======================
