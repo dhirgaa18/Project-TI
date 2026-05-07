@@ -193,35 +193,59 @@ elif menu == "🧪 Bahan Baku":
 # ==============================
 # PRODUKSI
 # ==============================
-if st.button("Produksi"):
+elif menu == "🏭 Produksi":
 
-    bahan_data = bahan[bahan["nama"] == bahan_pakai]
+    st.title("🏭 Produksi")
 
-    if not bahan_data.empty:
+    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
 
-        stok_sekarang = bahan_data.iloc[0]["stok"]
+    produk = st.text_input("Nama Produk")
+    jumlah = st.number_input("Jumlah Produksi", min_value=1)
 
-        if pakai_qty > stok_sekarang:
-            st.error("Stok bahan tidak cukup!")
+    bahan_pakai = st.selectbox(
+        "Pilih Bahan",
+        bahan["nama"] if not bahan.empty else ["-"]
+    )
+
+    pakai_qty = st.number_input("Jumlah Bahan Dipakai", min_value=1)
+
+    if st.button("Produksi"):
+
+        if bahan.empty:
+            st.error("Belum ada bahan baku")
         else:
 
-            cursor.execute("""
-                INSERT INTO produksi (tanggal, nama_produk, jumlah)
-                VALUES (?, ?, ?)
-            """, (
-                datetime.now().strftime("%Y-%m-%d"),
-                produk,
-                jumlah
-            ))
+            stok_sekarang = bahan[bahan["nama"] == bahan_pakai]["stok"].values[0]
 
-            cursor.execute("""
-                UPDATE bahan_baku
-                SET stok = stok - ?
-                WHERE nama = ?
-            """, (pakai_qty, bahan_pakai))
+            if pakai_qty > stok_sekarang:
+                st.error("Stok bahan tidak cukup!")
+            else:
 
-            conn.commit()
-            st.success("Produksi berhasil")
+                cursor.execute("""
+                    INSERT INTO produksi (tanggal, nama_produk, jumlah)
+                    VALUES (?, ?, ?)
+                """, (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    produk,
+                    jumlah
+                ))
+
+                cursor.execute("""
+                    UPDATE bahan_baku
+                    SET stok = stok - ?
+                    WHERE nama = ?
+                """, (pakai_qty, bahan_pakai))
+
+                conn.commit()
+                st.success("Produksi berhasil!")
+
+    # 👇 INI YANG KAMU LUPA
+    st.divider()
+    st.subheader("📊 Data Produksi")
+
+    produksi_df = pd.read_sql("SELECT * FROM produksi", conn)
+
+    st.dataframe(produksi_df, use_container_width=True)
 
 # ==============================
 # PRODUK JADI
