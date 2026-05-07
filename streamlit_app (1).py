@@ -204,9 +204,13 @@ if menu == "🏠 Dashboard":
     penjualan = pd.read_sql("SELECT * FROM penjualan", conn)
     pengeluaran = pd.read_sql("SELECT * FROM pengeluaran", conn)
 
-    omzet = penjualan["total"].sum() if not penjualan.empty else 0
-    total_pengeluaran = pengeluaran["nominal"].sum() if not pengeluaran.empty else 0
-    laba = omzet - total_pengeluaran
+   omzet = int(penjualan["total"].sum()) if not penjualan.empty else 0
+
+total_pengeluaran = int(
+    pengeluaran["nominal"].sum()
+) if not pengeluaran.empty else 0
+
+laba = omzet - total_pengeluaran
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -511,10 +515,15 @@ elif menu == "📊 Laporan":
     penjualan = pd.read_sql("SELECT * FROM penjualan", conn)
     pengeluaran = pd.read_sql("SELECT * FROM pengeluaran", conn)
 
-    omzet = penjualan["total"].sum() if not penjualan.empty else 0
-    keluar = pengeluaran["nominal"].sum() if not pengeluaran.empty else 0
+    omzet = int(
+    penjualan["total"].sum()
+) if not penjualan.empty else 0
 
-    laba = omzet - keluar
+keluar = int(
+    pengeluaran["nominal"].sum()
+) if not pengeluaran.empty else 0
+
+laba = omzet - keluar
 
     st.metric("💰 Omzet", f"Rp {omzet:,}")
     st.metric("💸 Pengeluaran", f"Rp {keluar:,}")
