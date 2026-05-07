@@ -470,4 +470,3 @@ elif menu == "Backup Database":
         st.success(
             "Backup berhasil dibuat"
         )
-```
