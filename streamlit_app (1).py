@@ -198,20 +198,20 @@ elif menu == "Produksi":
     st.title("🏭 Produksi Keripik")
 
     bahan = pd.read_sql("SELECT * FROM bahan", conn)
+    produk = pd.read_sql("SELECT * FROM produk", conn)
 
     jenis = st.selectbox("Pilih Pisang", ["Pisang Raja", "Pisang Kepok"])
+    rasa = st.selectbox("Rasa Produk", ["Manis", "Asin"])
     jumlah = st.number_input("Kg Pisang", min_value=1)
 
     if st.button("Produksi 1 Batch"):
 
-        # asumsi kebutuhan per kg
+        # kebutuhan bahan
         minyak = jumlah * 0.2
         garam = jumlah * 0.05
         gula = jumlah * 0.03
 
-        # cek stok cukup atau tidak
-        cek = True
-
+        # cek stok
         for nama, kebutuhan in [
             (jenis, jumlah),
             ("Minyak Goreng", minyak),
@@ -220,27 +220,49 @@ elif menu == "Produksi":
         ]:
             stok = bahan[bahan["nama"] == nama]["stok"].values
             if len(stok) == 0 or stok[0] < kebutuhan:
-                cek = False
+                st.error("Stok bahan tidak cukup")
+                st.stop()
 
-        if not cek:
-            st.error("Stok bahan tidak cukup")
+        # kurangi bahan
+        for nama, kebutuhan in [
+            (jenis, jumlah),
+            ("Minyak Goreng", minyak),
+            ("Garam", garam),
+            ("Gula", gula),
+        ]:
+            c.execute("""
+                UPDATE bahan
+                SET stok = stok - ?
+                WHERE nama = ?
+            """, (kebutuhan, nama))
+
+        # 🔥 HASIL PRODUK
+        hasil_keripik = jumlah * 2  # 1kg jadi 2kg
+
+        nama_produk = f"Keripik {jenis} {rasa}"
+
+        # cek apakah sudah ada produk
+        cek = pd.read_sql(
+            "SELECT * FROM produk WHERE nama = ?",
+            conn,
+            params=(nama_produk,)
+        )
+
+        if cek.empty:
+            c.execute("""
+                INSERT INTO produk (nama, rasa, stok, harga)
+                VALUES (?,?,?,?)
+            """, (nama_produk, rasa, hasil_keripik, 20000))
         else:
-            # kurangi bahan
-            for nama, kebutuhan in [
-                (jenis, jumlah),
-                ("Minyak Goreng", minyak),
-                ("Garam", garam),
-                ("Gula", gula),
-            ]:
-                c.execute("""
-                    UPDATE bahan
-                    SET stok = stok - ?
-                    WHERE nama = ?
-                """, (kebutuhan, nama))
+            c.execute("""
+                UPDATE produk
+                SET stok = stok + ?
+                WHERE nama = ?
+            """, (hasil_keripik, nama_produk))
 
-            conn.commit()
+        conn.commit()
 
-            st.success("Produksi berhasil! Keripik jadi 🧂🍌")
+        st.success(f"Produksi berhasil! +{hasil_keripik} keripik masuk stok")
 
 # ======================
 # PRODUK JADI
