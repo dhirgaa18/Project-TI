@@ -230,25 +230,49 @@ elif menu == "🛒 Penjualan":
 
     st.title("🛒 Penjualan")
 
-    produk = pd.read_sql("SELECT * FROM produk", conn)
+    produk_df = pd.read_sql("SELECT * FROM produk", conn)
 
-    if not produk.empty:
+    if produk_df.empty:
+        st.warning("⚠️ Belum ada produk. Tambahkan dulu di menu Produk.")
+    else:
 
-        p = st.selectbox("Produk", produk["nama"])
-        j = st.number_input("Jumlah", 1)
+        produk = st.selectbox("Pilih Produk", produk_df["nama"])
+        jumlah = st.number_input("Jumlah", min_value=1, step=1)
 
-        data = produk[produk["nama"] == p].iloc[0]
-        total = data["harga_jual"] * j
+        data = produk_df[produk_df["nama"] == produk].iloc[0]
+        total = int(data["harga_jual"]) * int(jumlah)
 
-        st.info(f"Total: Rp {total:,}")
+        st.info(f"💰 Total Harga: Rp {total:,}")
 
-        if st.button("Simpan"):
-            cursor.execute(
-                "INSERT INTO penjualan VALUES (NULL,?,?,?,?)",
-                (datetime.now().strftime("%Y-%m-%d"), p, j, total)
-            )
-            conn.commit()
-            st.success("OK")
+        if st.button("💾 Simpan Penjualan"):
+
+            try:
+                cursor.execute("""
+                    INSERT INTO penjualan (tanggal, produk, jumlah, total)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    produk,
+                    jumlah,
+                    total
+                ))
+
+                conn.commit()
+
+                st.success("✅ Penjualan berhasil disimpan!")
+
+                # DEBUG: langsung reload data
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+    st.divider()
+
+    st.subheader("📊 Data Penjualan")
+
+    penjualan_df = pd.read_sql("SELECT * FROM penjualan", conn)
+    st.dataframe(penjualan_df, use_container_width=True)
 
 # ==============================
 # PENGELUARAN
