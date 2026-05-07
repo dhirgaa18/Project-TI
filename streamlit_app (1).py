@@ -67,11 +67,67 @@ h1,h2,h3{
 """, unsafe_allow_html=True)
 
 # =========================================
-# DATABASE
+# DASHBOARD
 # =========================================
-conn = sqlite3.connect("banana_crunch.db", check_same_thread=False)
-c = conn.cursor()
+if menu == "🏠 Dashboard":
 
+    st.title("🍌 BananaCrunch Dashboard")
+
+    bahan = pd.read_sql("SELECT * FROM bahan", conn)
+    produk = pd.read_sql("SELECT * FROM produk", conn)
+    penjualan = pd.read_sql("SELECT * FROM penjualan", conn)
+    pengeluaran = pd.read_sql("SELECT * FROM pengeluaran", conn)
+
+    # OMZET
+    if not penjualan.empty:
+
+        penjualan["total"] = pd.to_numeric(
+            penjualan["total"],
+            errors="coerce"
+        ).fillna(0)
+
+        omzet = penjualan["total"].sum()
+
+    else:
+        omzet = 0
+
+    # PENGELUARAN
+    if not pengeluaran.empty:
+
+        pengeluaran["nominal"] = pd.to_numeric(
+            pengeluaran["nominal"],
+            errors="coerce"
+        ).fillna(0)
+
+        total_pengeluaran = pengeluaran["nominal"].sum()
+
+    else:
+        total_pengeluaran = 0
+
+    laba = omzet - total_pengeluaran
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("💰 Omzet", f"Rp {omzet:,.0f}")
+    col2.metric("📦 Produk", len(produk))
+    col3.metric("🧪 Bahan", len(bahan))
+    col4.metric("💵 Laba", f"Rp {laba:,.0f}")
+
+    st.divider()
+
+    st.subheader("📈 Grafik Penjualan")
+
+    if not penjualan.empty:
+
+        chart = penjualan.groupby("tanggal")["total"].sum()
+
+        st.line_chart(chart)
+
+    stok_minim = bahan[bahan["stok"] < 5]
+
+    if not stok_minim.empty:
+        st.warning("⚠ Ada stok bahan hampir habis!")
+        st.dataframe(stok_minim)
 # =========================================
 # CREATE TABLE
 # =========================================
