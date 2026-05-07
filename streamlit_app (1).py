@@ -38,7 +38,6 @@ h1, h2, h3 {
 conn = sqlite3.connect("keripik.db", check_same_thread=False)
 c = conn.cursor()
 
-# TABLE
 c.execute("""CREATE TABLE IF NOT EXISTS bahan (
     id INTEGER PRIMARY KEY,
     nama TEXT,
@@ -46,35 +45,14 @@ c.execute("""CREATE TABLE IF NOT EXISTS bahan (
     satuan TEXT
 )""")
 
-c.execute("""CREATE TABLE IF NOT EXISTS produk (
-    id INTEGER PRIMARY KEY,
-    nama TEXT,
-    rasa TEXT,
-    stok INTEGER,
-    harga INTEGER
-)""")
-
-c.execute("""CREATE TABLE IF NOT EXISTS penjualan (
-    id INTEGER PRIMARY KEY,
-    tanggal TEXT,
-    produk TEXT,
-    jumlah INTEGER,
-    total INTEGER
-)""")
-
-c.execute("""CREATE TABLE IF NOT EXISTS pengeluaran (
-    id INTEGER PRIMARY KEY,
-    tanggal TEXT,
-    nama TEXT,
-    nominal INTEGER
-)""")
-
 conn.commit()
 
 # ======================
-# SEED BAHAN (FIXED)
+# SEED DATA (FIXED 100%)
 # ======================
-if pd.read_sql("SELECT COUNT(*) as c FROM bahan", conn)["c"][0] == 0:
+cek = pd.read_sql("SELECT COUNT(*) as c FROM bahan", conn)
+
+if cek["c"][0] == 0:
 
     data = [
         ("Pisang Raja", 50, "kg"),
@@ -85,11 +63,12 @@ if pd.read_sql("SELECT COUNT(*) as c FROM bahan", conn)["c"][0] == 0:
         ("Gas LPG", 10, "tabung")
     ]
 
-    for d in data:
-        c.execute("INSERT INTO bahan VALUES (NULL,?,?,?)", d)
+    c.executemany("""
+        INSERT INTO bahan (nama, stok, satuan)
+        VALUES (?, ?, ?)
+    """, data)
 
     conn.commit()
-
 # ======================
 # LOGIN
 # ======================
@@ -144,7 +123,28 @@ elif menu == "Bahan Baku":
     st.title("🧪 Bahan Baku")
 
     bahan = pd.read_sql("SELECT * FROM bahan", conn)
+
     st.dataframe(bahan, use_container_width=True)
+
+    st.subheader("Tambah Bahan")
+
+    nama = st.text_input("Nama bahan")
+    stok = st.number_input("Stok", min_value=0.0)
+    satuan = st.selectbox("Satuan", ["kg", "liter", "tabung"])
+
+    if st.button("Tambah"):
+
+        if nama == "":
+            st.error("Nama tidak boleh kosong")
+        else:
+            c.execute("""
+                INSERT INTO bahan (nama, stok, satuan)
+                VALUES (?, ?, ?)
+            """, (nama, stok, satuan))
+
+            conn.commit()
+            st.success("Bahan berhasil ditambah")
+            st.rerun()
 
 # ======================
 # PRODUKSI (FIX TOTAL)
