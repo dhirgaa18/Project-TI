@@ -738,7 +738,7 @@ elif menu == "Backup Database":
         )
 
         st.success("Backup berhasil dibuat")
-
+        
 # ====================================
 # SIDEBAR
 # ====================================
@@ -1203,3 +1203,421 @@ elif menu == "💾 Backup Database":
         )
 
         st.success("Backup berhasil dibuat")
+```python id="clean-menu-structure"
+# ====================================
+# SIDEBAR
+# ====================================
+st.sidebar.title("🌿 Manajemen Usaha")
+
+menu = st.sidebar.radio(
+    "Menu",
+    [
+        "📈 Dashboard",
+        "🧪 Bahan Baku",
+        "🏭 Produksi",
+        "📦 Produk",
+        "🛒 Penjualan",
+        "💸 Pengeluaran",
+        "📄 Laporan",
+        "💾 Backup"
+    ]
+)
+
+# ====================================
+# DASHBOARD
+# ====================================
+if menu == "📈 Dashboard":
+
+    st.title("📈 Dashboard")
+
+    penjualan_df = pd.read_sql(
+        "SELECT * FROM penjualan",
+        conn
+    )
+
+    pengeluaran_df = pd.read_sql(
+        "SELECT * FROM pengeluaran",
+        conn
+    )
+
+    produk_df = pd.read_sql(
+        "SELECT * FROM produk",
+        conn
+    )
+
+    total_penjualan = (
+        penjualan_df["total"].sum()
+        if not penjualan_df.empty
+        else 0
+    )
+
+    total_pengeluaran = (
+        pengeluaran_df["nominal"].sum()
+        if not pengeluaran_df.empty
+        else 0
+    )
+
+    profit = total_penjualan - total_pengeluaran
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Penjualan",
+        f"Rp {total_penjualan:,}"
+    )
+
+    col2.metric(
+        "Pengeluaran",
+        f"Rp {total_pengeluaran:,}"
+    )
+
+    col3.metric(
+        "Profit",
+        f"Rp {profit:,}"
+    )
+
+# ====================================
+# BAHAN BAKU
+# ====================================
+elif menu == "🧪 Bahan Baku":
+
+    st.title("🧪 Bahan Baku")
+
+    with st.form("bahan"):
+
+        nama = st.text_input("Nama Bahan")
+
+        stok = st.number_input(
+            "Stok",
+            min_value=0
+        )
+
+        satuan = st.selectbox(
+            "Satuan",
+            ["Kg", "Gram", "Liter", "Pcs"]
+        )
+
+        submit = st.form_submit_button(
+            "Tambah"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO bahan_baku
+                (nama, stok, satuan)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    nama,
+                    stok,
+                    satuan
+                )
+            )
+
+            conn.commit()
+
+            st.success("Berhasil ditambahkan")
+
+    bahan_df = pd.read_sql(
+        "SELECT * FROM bahan_baku",
+        conn
+    )
+
+    st.dataframe(
+        bahan_df,
+        use_container_width=True
+    )
+
+# ====================================
+# PRODUKSI
+# ====================================
+elif menu == "🏭 Produksi":
+
+    st.title("🏭 Produksi")
+
+    with st.form("produksi"):
+
+        nama_produk = st.text_input(
+            "Nama Produk"
+        )
+
+        jumlah = st.number_input(
+            "Jumlah Produksi",
+            min_value=1
+        )
+
+        submit = st.form_submit_button(
+            "Simpan"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO produksi
+                (tanggal, nama_produk, jumlah)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    nama_produk,
+                    jumlah
+                )
+            )
+
+            conn.commit()
+
+            st.success("Produksi disimpan")
+
+    produksi_df = pd.read_sql(
+        "SELECT * FROM produksi",
+        conn
+    )
+
+    st.dataframe(
+        produksi_df,
+        use_container_width=True
+    )
+
+# ====================================
+# PRODUK
+# ====================================
+elif menu == "📦 Produk":
+
+    st.title("📦 Produk")
+
+    with st.form("produk"):
+
+        nama = st.text_input("Nama Produk")
+
+        harga_beli = st.number_input(
+            "Harga Modal",
+            min_value=0
+        )
+
+        harga_jual = st.number_input(
+            "Harga Jual",
+            min_value=0
+        )
+
+        stok = st.number_input(
+            "Stok",
+            min_value=0
+        )
+
+        kategori = st.text_input("Kategori")
+
+        submit = st.form_submit_button(
+            "Tambah Produk"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO produk
+                (nama, harga_beli, harga_jual, stok, kategori)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    nama,
+                    harga_beli,
+                    harga_jual,
+                    stok,
+                    kategori
+                )
+            )
+
+            conn.commit()
+
+            st.success("Produk berhasil ditambahkan")
+
+    produk_df = pd.read_sql(
+        "SELECT * FROM produk",
+        conn
+    )
+
+    st.dataframe(
+        produk_df,
+        use_container_width=True
+    )
+
+# ====================================
+# PENJUALAN
+# ====================================
+elif menu == "🛒 Penjualan":
+
+    st.title("🛒 Penjualan")
+
+    produk_df = pd.read_sql(
+        "SELECT * FROM produk",
+        conn
+    )
+
+    if produk_df.empty:
+
+        st.warning("Belum ada produk")
+
+    else:
+
+        produk = st.selectbox(
+            "Pilih Produk",
+            produk_df["nama"]
+        )
+
+        jumlah = st.number_input(
+            "Jumlah",
+            min_value=1
+        )
+
+        selected = produk_df[
+            produk_df["nama"] == produk
+        ].iloc[0]
+
+        total = (
+            selected["harga_jual"] * jumlah
+        )
+
+        st.info(f"Total = Rp {total:,}")
+
+        if st.button("Simpan Penjualan"):
+
+            stok_baru = (
+                selected["stok"] - jumlah
+            )
+
+            if stok_baru < 0:
+
+                st.error("Stok tidak cukup")
+
+            else:
+
+                cursor.execute(
+                    """
+                    INSERT INTO penjualan
+                    (tanggal, produk, jumlah, total)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        datetime.now().strftime("%Y-%m-%d"),
+                        produk,
+                        jumlah,
+                        total
+                    )
+                )
+
+                cursor.execute(
+                    """
+                    UPDATE produk
+                    SET stok = ?
+                    WHERE nama = ?
+                    """,
+                    (
+                        stok_baru,
+                        produk
+                    )
+                )
+
+                conn.commit()
+
+                st.success("Penjualan berhasil")
+
+# ====================================
+# PENGELUARAN
+# ====================================
+elif menu == "💸 Pengeluaran":
+
+    st.title("💸 Pengeluaran")
+
+    with st.form("pengeluaran"):
+
+        nama = st.text_input(
+            "Nama Pengeluaran"
+        )
+
+        nominal = st.number_input(
+            "Nominal",
+            min_value=0
+        )
+
+        submit = st.form_submit_button(
+            "Simpan"
+        )
+
+        if submit:
+
+            cursor.execute(
+                """
+                INSERT INTO pengeluaran
+                (tanggal, nama, nominal)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    nama,
+                    nominal
+                )
+            )
+
+            conn.commit()
+
+            st.success("Pengeluaran berhasil")
+
+    pengeluaran_df = pd.read_sql(
+        "SELECT * FROM pengeluaran",
+        conn
+    )
+
+    st.dataframe(
+        pengeluaran_df,
+        use_container_width=True
+    )
+
+# ====================================
+# LAPORAN
+# ====================================
+elif menu == "📄 Laporan":
+
+    st.title("📄 Laporan")
+
+    laporan_df = pd.read_sql(
+        """
+        SELECT tanggal,
+        SUM(total) as total_harian
+        FROM penjualan
+        GROUP BY tanggal
+        """,
+        conn
+    )
+
+    st.dataframe(
+        laporan_df,
+        use_container_width=True
+    )
+
+# ====================================
+# BACKUP
+# ====================================
+elif menu == "💾 Backup":
+
+    st.title("💾 Backup Database")
+
+    if st.button("Backup Sekarang"):
+
+        if not os.path.exists("backup"):
+            os.makedirs("backup")
+
+        backup_name = (
+            f"backup_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+        )
+
+        shutil.copy(
+            "usaha.db",
+            f"backup/{backup_name}"
+        )
+
+        st.success("Backup berhasil dibuat")
+
