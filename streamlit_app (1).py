@@ -193,76 +193,39 @@ elif menu == "Bahan Baku":
 # ======================
 # PRODUKSI
 # ======================
-elif menu == "Produksi":
+if st.button("Produksi 1 Batch"):
 
-    st.title("🏭 Produksi Keripik")
+    kebutuhan_list = [
+        (jenis, jumlah),
+        ("Minyak Goreng", jumlah * 0.2),
+        ("Garam", jumlah * 0.05),
+        ("Gula", jumlah * 0.03),
+    ]
 
-    bahan = pd.read_sql("SELECT * FROM bahan", conn)
-    produk = pd.read_sql("SELECT * FROM produk", conn)
+    # cek stok
+    cek = True
 
-    jenis = st.selectbox("Pilih Pisang", ["Pisang Raja", "Pisang Kepok"])
-    rasa = st.selectbox("Rasa Produk", ["Manis", "Asin"])
-    jumlah = st.number_input("Kg Pisang", min_value=1)
+    for nama, kebutuhan in kebutuhan_list:
 
-    if st.button("Produksi 1 Batch"):
+        c.execute("SELECT stok FROM bahan WHERE nama = ?", (nama,))
+        data = c.fetchone()
 
-        # kebutuhan bahan
-        minyak = jumlah * 0.2
-        garam = jumlah * 0.05
-        gula = jumlah * 0.03
+        if data is None or data[0] < kebutuhan:
+            cek = False
 
-        # cek stok
-        for nama, kebutuhan in [
-            (jenis, jumlah),
-            ("Minyak Goreng", minyak),
-            ("Garam", garam),
-            ("Gula", gula),
-        ]:
-            stok = bahan[bahan["nama"] == nama]["stok"].values
-            if len(stok) == 0 or stok[0] < kebutuhan:
-                st.error("Stok bahan tidak cukup")
-                st.stop()
+    if not cek:
+        st.error("Stok bahan tidak cukup")
+    else:
 
-        # kurangi bahan
-        for nama, kebutuhan in [
-            (jenis, jumlah),
-            ("Minyak Goreng", minyak),
-            ("Garam", garam),
-            ("Gula", gula),
-        ]:
+        for nama, kebutuhan in kebutuhan_list:
             c.execute("""
                 UPDATE bahan
                 SET stok = stok - ?
                 WHERE nama = ?
             """, (kebutuhan, nama))
 
-        # 🔥 HASIL PRODUK
-        hasil_keripik = jumlah * 2  # 1kg jadi 2kg
-
-        nama_produk = f"Keripik {jenis} {rasa}"
-
-        # cek apakah sudah ada produk
-        cek = pd.read_sql(
-            "SELECT * FROM produk WHERE nama = ?",
-            conn,
-            params=(nama_produk,)
-        )
-
-        if cek.empty:
-            c.execute("""
-                INSERT INTO produk (nama, rasa, stok, harga)
-                VALUES (?,?,?,?)
-            """, (nama_produk, rasa, hasil_keripik, 20000))
-        else:
-            c.execute("""
-                UPDATE produk
-                SET stok = stok + ?
-                WHERE nama = ?
-            """, (hasil_keripik, nama_produk))
-
         conn.commit()
-
-        st.success(f"Produksi berhasil! +{hasil_keripik} keripik masuk stok")
+        st.success("Produksi berhasil! 🧂🍌")
 
 # ======================
 # PRODUK JADI
