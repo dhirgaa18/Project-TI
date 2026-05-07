@@ -51,7 +51,6 @@ conn.commit()
 cek = pd.read_sql("SELECT COUNT(*) as c FROM bahan", conn)
 
 if cek["c"][0] == 0:
-
     data = [
         ("Pisang Raja", 50, "kg"),
         ("Pisang Kepok", 50, "kg"),
@@ -118,8 +117,6 @@ if menu == "Dashboard":
 # ======================
 elif menu == "Bahan Baku":
 
-    st.title("🧪 Bahan Baku")
-
     nama = st.text_input("Nama Bahan")
     stok = st.number_input("Stok", min_value=0)
     satuan = st.selectbox("Satuan", ["kg", "liter", "pcs", "tabung"])
@@ -132,8 +129,6 @@ elif menu == "Bahan Baku":
 
         conn.commit()
         st.success("Bahan masuk")
-
-    st.dataframe(pd.read_sql("SELECT * FROM bahan", conn))
 # ======================
 # PRODUKSI (FIX TOTAL)
 # ======================
