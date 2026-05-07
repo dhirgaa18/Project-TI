@@ -244,39 +244,48 @@ elif menu == "📦 Produk Jadi":
 # ==============================
 elif menu == "🛒 Penjualan":
 
-    st.title("🛒 Penjualan")
+    st.title("🛒 Penjualan Produk")
 
-    produk = pd.read_sql("SELECT * FROM produk", conn)
+    produk_df = pd.read_sql("SELECT * FROM produk", conn)
 
-    if not produk.empty:
+    if produk_df.empty:
+        st.warning("Belum ada produk")
+    else:
+        produk = st.selectbox("Pilih Produk", produk_df["nama"])
+        jumlah = st.number_input("Jumlah", min_value=1, step=1)
 
-        p = st.selectbox("Produk", produk["nama"])
-        j = st.number_input("Jumlah", 1)
+        selected = produk_df[produk_df["nama"] == produk].iloc[0]
 
-        data = produk[produk["nama"] == p].iloc[0]
-        total = data["harga_jual"] * j
+        total = selected["harga_jual"] * jumlah
 
-        st.info(f"Total Rp {total:,}")
+        st.info(f"Total Harga: Rp {total:,}")
 
-        if st.button("Jual"):
+        if st.button("Simpan Penjualan"):
 
-            if data["stok"] < j:
-                st.error("Stok kurang")
+            if jumlah > selected["stok"]:
+                st.error("Stok tidak cukup!")
             else:
-
+                # simpan penjualan
                 cursor.execute("""
-                    INSERT INTO penjualan VALUES (NULL,?,?,?,?)
-                """, (datetime.now().strftime("%Y-%m-%d"), p, j, total))
+                    INSERT INTO penjualan (tanggal, produk, jumlah, total)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    datetime.now().strftime("%Y-%m-%d"),
+                    produk,
+                    jumlah,
+                    total
+                ))
 
+                # update stok
                 cursor.execute("""
                     UPDATE produk
                     SET stok = stok - ?
                     WHERE nama = ?
-                """, (j, p))
+                """, (jumlah, produk))
 
                 conn.commit()
 
-                st.success("Penjualan berhasil")
+                st.success("Penjualan berhasil disimpan!")
 
 # ==============================
 # PENGELUARAN
