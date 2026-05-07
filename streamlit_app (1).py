@@ -38,14 +38,43 @@ h1, h2, h3 {
 conn = sqlite3.connect("keripik.db", check_same_thread=False)
 c = conn.cursor()
 
-# bahan pisang
-c.execute("""
-CREATE TABLE IF NOT EXISTS bahan (
+# CREATE TABLE
+c.execute("""CREATE TABLE IF NOT EXISTS bahan (
     id INTEGER PRIMARY KEY,
     nama TEXT,
-    stok INTEGER
-)
-""")
+    stok REAL,
+    satuan TEXT
+)""")
+
+c.execute("""CREATE TABLE IF NOT EXISTS produk (
+    id INTEGER PRIMARY KEY,
+    nama TEXT,
+    rasa TEXT,
+    stok INTEGER,
+    harga INTEGER
+)""")
+
+conn.commit()
+
+# 🔥 INI BARU TARUH SEED DI SINI
+# ======================
+# DATA AWAL BAHAN
+# ======================
+if pd.read_sql("SELECT COUNT(*) as c FROM bahan", conn)["c"][0] == 0:
+
+    data = [
+        ("Pisang Raja", 50, "kg"),
+        ("Pisang Kepok", 50, "kg"),
+        ("Minyak Goreng", 20, "liter"),
+        ("Garam", 10, "kg"),
+        ("Gula", 10, "kg"),
+        ("Gas LPG", 10, "tabung")
+    ]
+
+    for d in data:
+        c.execute("INSERT INTO bahan VALUES (NULL,?,?,?)", d)
+
+    conn.commit()
 
 # produk jadi
 c.execute("""
@@ -165,30 +194,53 @@ elif menu == "Bahan Baku":
 # PRODUKSI
 # ======================
 elif menu == "Produksi":
+
     st.title("🏭 Produksi Keripik")
 
     bahan = pd.read_sql("SELECT * FROM bahan", conn)
 
-    if bahan.empty:
-        st.warning("Isi bahan dulu")
-    else:
-        pilih = st.selectbox("Pilih Bahan", bahan["nama"])
-        jumlah = st.number_input("Kg dipakai", min_value=1)
+    jenis = st.selectbox("Pilih Pisang", ["Pisang Raja", "Pisang Kepok"])
+    jumlah = st.number_input("Kg Pisang", min_value=1)
 
-        hasil = jumlah * 2  # 1kg jadi 2kg keripik
+    if st.button("Produksi 1 Batch"):
 
-        if st.button("Produksi"):
-            c.execute("""
-                INSERT INTO produksi VALUES (NULL,?,?,?,?)
-            """, (
-                datetime.now().strftime("%Y-%m-%d"),
-                pilih,
-                jumlah,
-                hasil
-            ))
+        # asumsi kebutuhan per kg
+        minyak = jumlah * 0.2
+        garam = jumlah * 0.05
+        gula = jumlah * 0.03
+
+        # cek stok cukup atau tidak
+        cek = True
+
+        for nama, kebutuhan in [
+            (jenis, jumlah),
+            ("Minyak Goreng", minyak),
+            ("Garam", garam),
+            ("Gula", gula),
+        ]:
+            stok = bahan[bahan["nama"] == nama]["stok"].values
+            if len(stok) == 0 or stok[0] < kebutuhan:
+                cek = False
+
+        if not cek:
+            st.error("Stok bahan tidak cukup")
+        else:
+            # kurangi bahan
+            for nama, kebutuhan in [
+                (jenis, jumlah),
+                ("Minyak Goreng", minyak),
+                ("Garam", garam),
+                ("Gula", gula),
+            ]:
+                c.execute("""
+                    UPDATE bahan
+                    SET stok = stok - ?
+                    WHERE nama = ?
+                """, (kebutuhan, nama))
 
             conn.commit()
-            st.success(f"Hasil keripik: {hasil} kg")
+
+            st.success("Produksi berhasil! Keripik jadi 🧂🍌")
 
 # ======================
 # PRODUK JADI
