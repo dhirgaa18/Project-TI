@@ -38,12 +38,10 @@ h1, h2, h3 {
 conn = sqlite3.connect("keripik.db", check_same_thread=False)
 c = conn.cursor()
 
-c.execute("""CREATE TABLE IF NOT EXISTS bahan (
-    id INTEGER PRIMARY KEY,
-    nama TEXT,
-    stok REAL,
-    satuan TEXT
-)""")
+c.execute("""
+    INSERT INTO bahan (nama, stok, satuan)
+    VALUES (?, ?, ?)
+""", (nama, stok, "kg"))
 
 conn.commit()
 
@@ -151,45 +149,49 @@ elif menu == "Bahan Baku":
 # ======================
 elif menu == "Produksi":
 
+    elif menu == "Produksi":
+
     st.title("🏭 Produksi Keripik")
 
     bahan = pd.read_sql("SELECT * FROM bahan", conn)
 
-    jenis = st.selectbox("Pisang", ["Pisang Raja", "Pisang Kepok"])
+    jenis = st.selectbox("Pilih Pisang", ["Pisang Raja", "Pisang Kepok"])
     jumlah = st.number_input("Kg Pisang", min_value=1)
 
-    if st.button("Produksi"):
+    if st.button("Produksi 1 Batch"):
 
-        kebutuhan = [
+        kebutuhan_list = [
             (jenis, jumlah),
             ("Minyak Goreng", jumlah * 0.2),
             ("Garam", jumlah * 0.05),
             ("Gula", jumlah * 0.03),
         ]
 
-        # cek stok
         cukup = True
 
-        for nama, qty in kebutuhan:
-            c.execute("SELECT stok FROM bahan WHERE nama=?", (nama,))
-            data = c.fetchone()
+        for nama, kebutuhan in kebutuhan_list:
+            row = bahan[bahan["nama"] == nama]
 
-            if data is None or data[0] < qty:
+            if row.empty:
+                st.error(f"Bahan {nama} tidak ada di database")
                 cukup = False
+                break
 
-        if not cukup:
-            st.error("Stok tidak cukup")
-        else:
-            for nama, qty in kebutuhan:
+            if row.iloc[0]["stok"] < kebutuhan:
+                st.error(f"Stok {nama} kurang")
+                cukup = False
+                break
+
+        if cukup:
+            for nama, kebutuhan in kebutuhan_list:
                 c.execute("""
                     UPDATE bahan
                     SET stok = stok - ?
                     WHERE nama = ?
-                """, (qty, nama))
+                """, (kebutuhan, nama))
 
             conn.commit()
-            st.success("Produksi berhasil 🍌")
-
+            st.success("Produksi berhasil 🧂🍌")
 # ======================
 # PRODUK
 # ======================
