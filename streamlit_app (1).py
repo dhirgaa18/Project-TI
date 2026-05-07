@@ -10,7 +10,7 @@ import shutil
 # CONFIG
 # ==============================
 st.set_page_config(
-    page_title="Manajemen Usaha",
+    page_title="Manajemen UMKM Produksi",
     page_icon="🌿",
     layout="wide"
 )
@@ -37,11 +37,11 @@ st.markdown("""
     color: white;
 }
 
-/* cards */
+/* metric */
 [data-testid="metric-container"] {
-    background: rgba(255,250,243,0.8);
-    padding: 15px;
+    background: rgba(255,250,243,0.85);
     border-radius: 15px;
+    padding: 15px;
 }
 
 /* button */
@@ -49,6 +49,7 @@ st.markdown("""
     background: #6b705c;
     color: white;
     border-radius: 10px;
+    font-weight: bold;
 }
 
 </style>
@@ -59,6 +60,20 @@ st.markdown("""
 # ==============================
 conn = sqlite3.connect("usaha.db", check_same_thread=False)
 cursor = conn.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS bahan_baku (
+    id INTEGER PRIMARY KEY,
+    nama TEXT,
+    stok INTEGER,
+    satuan TEXT
+)""")
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS produksi (
+    id INTEGER PRIMARY KEY,
+    tanggal TEXT,
+    nama_produk TEXT,
+    jumlah INTEGER
+)""")
 
 cursor.execute("""CREATE TABLE IF NOT EXISTS produk (
     id INTEGER PRIMARY KEY,
@@ -87,44 +102,54 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS pengeluaran (
 conn.commit()
 
 # ==============================
-# LOGIN SIMPLE
+# LOGIN
 # ==============================
-USERNAME = "admin"
-PASSWORD = "12345"
+USER = "admin"
+PASS = "12345"
 
 if "login" not in st.session_state:
     st.session_state.login = False
 
 if not st.session_state.login:
-    st.title("🔐 Login")
+    st.title("🔐 Login UMKM")
 
     u = st.text_input("Username")
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == USERNAME and p == PASSWORD:
+        if u == USER and p == PASS:
             st.session_state.login = True
             st.rerun()
         else:
-            st.error("Salah")
+            st.error("Salah login")
 
     st.stop()
 
 # ==============================
-# SIDEBAR (ONLY ONCE!)
+# MENU (FIXED)
 # ==============================
 menu = st.sidebar.radio(
     "🌿 Menu",
-    ["Dashboard", "Produk", "Penjualan", "Pengeluaran", "Laporan", "Backup"]
+    [
+        "📈 Dashboard",
+        "🧪 Bahan Baku",
+        "🏭 Produksi",
+        "📦 Produk Jadi",
+        "🛒 Penjualan",
+        "💸 Pengeluaran",
+        "📄 Laporan"
+    ]
 )
 
 # ==============================
-# DASHBOARD
+# DASHBOARD (FIX PRODUKSI SYSTEM)
 # ==============================
-if menu == "Dashboard":
+if menu == "📈 Dashboard":
 
-    st.title("📊 Dashboard")
+    st.title("🌿 Dashboard UMKM Produksi")
 
+    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
+    produksi = pd.read_sql("SELECT * FROM produksi", conn)
     penjualan = pd.read_sql("SELECT * FROM penjualan", conn)
     pengeluaran = pd.read_sql("SELECT * FROM pengeluaran", conn)
 
@@ -134,56 +159,88 @@ if menu == "Dashboard":
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Penjualan", f"Rp {total_jual:,}")
-    col2.metric("Pengeluaran", f"Rp {total_keluar:,}")
-    col3.metric("Profit", f"Rp {profit:,}")
+    col1.metric("💰 Penjualan", f"Rp {total_jual:,}")
+    col2.metric("💸 Pengeluaran", f"Rp {total_keluar:,}")
+    col3.metric("📈 Profit", f"Rp {profit:,}")
 
     st.divider()
 
-# ==============================
-# PRODUK
-# ==============================
-elif menu == "Produk":
+    st.subheader("🧪 Bahan Baku Menipis")
+    st.dataframe(bahan[bahan["stok"] <= 5], use_container_width=True)
 
-    st.title("📦 Produk")
+    st.subheader("🏭 Produksi Terakhir")
+    st.dataframe(produksi.tail(5), use_container_width=True)
 
-    with st.form("produk"):
+# ==============================
+# BAHAN BAKU
+# ==============================
+elif menu == "🧪 Bahan Baku":
+
+    st.title("🧪 Bahan Baku")
+
+    with st.form("bahan"):
         nama = st.text_input("Nama")
-        hb = st.number_input("Harga Beli")
-        hj = st.number_input("Harga Jual")
-        stok = st.number_input("Stok")
-        kategori = st.text_input("Kategori")
+        stok = st.number_input("Stok", min_value=0)
+        satuan = st.selectbox("Satuan", ["Kg","Gram","Liter","Pcs"])
 
         if st.form_submit_button("Tambah"):
             cursor.execute(
-                "INSERT INTO produk VALUES (NULL,?,?,?,?,?)",
-                (nama, hb, hj, stok, kategori)
+                "INSERT INTO bahan_baku VALUES (NULL,?,?,?)",
+                (nama, stok, satuan)
             )
             conn.commit()
             st.success("OK")
 
-    df = pd.read_sql("SELECT * FROM produk", conn)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(pd.read_sql("SELECT * FROM bahan_baku", conn))
+
+# ==============================
+# PRODUKSI
+# ==============================
+elif menu == "🏭 Produksi":
+
+    st.title("🏭 Produksi")
+
+    with st.form("produksi"):
+        nama = st.text_input("Nama Produk")
+        jumlah = st.number_input("Jumlah", min_value=1)
+
+        if st.form_submit_button("Simpan"):
+            cursor.execute(
+                "INSERT INTO produksi VALUES (NULL,?,?,?)",
+                (datetime.now().strftime("%Y-%m-%d"), nama, jumlah)
+            )
+            conn.commit()
+            st.success("Tersimpan")
+
+    st.dataframe(pd.read_sql("SELECT * FROM produksi", conn))
+
+# ==============================
+# PRODUK JADI
+# ==============================
+elif menu == "📦 Produk Jadi":
+
+    st.title("📦 Produk Jadi")
+
+    st.dataframe(pd.read_sql("SELECT * FROM produk", conn))
 
 # ==============================
 # PENJUALAN
 # ==============================
-elif menu == "Penjualan":
+elif menu == "🛒 Penjualan":
 
     st.title("🛒 Penjualan")
 
     produk = pd.read_sql("SELECT * FROM produk", conn)
 
-    if produk.empty:
-        st.warning("Kosong")
-    else:
+    if not produk.empty:
+
         p = st.selectbox("Produk", produk["nama"])
         j = st.number_input("Jumlah", 1)
 
         data = produk[produk["nama"] == p].iloc[0]
         total = data["harga_jual"] * j
 
-        st.info(f"Total {total}")
+        st.info(f"Total: Rp {total:,}")
 
         if st.button("Simpan"):
             cursor.execute(
@@ -196,7 +253,7 @@ elif menu == "Penjualan":
 # ==============================
 # PENGELUARAN
 # ==============================
-elif menu == "Pengeluaran":
+elif menu == "💸 Pengeluaran":
 
     st.title("💸 Pengeluaran")
 
@@ -212,13 +269,12 @@ elif menu == "Pengeluaran":
             conn.commit()
             st.success("OK")
 
-    df = pd.read_sql("SELECT * FROM pengeluaran", conn)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(pd.read_sql("SELECT * FROM pengeluaran", conn))
 
 # ==============================
 # LAPORAN
 # ==============================
-elif menu == "Laporan":
+elif menu == "📄 Laporan":
 
     st.title("📄 Laporan")
 
@@ -233,19 +289,3 @@ elif menu == "Laporan":
     if not df.empty:
         fig = px.line(df, x="tanggal", y="total")
         st.plotly_chart(fig)
-
-# ==============================
-# BACKUP
-# ==============================
-elif menu == "Backup":
-
-    st.title("💾 Backup")
-
-    if st.button("Backup"):
-        if not os.path.exists("backup"):
-            os.makedirs("backup")
-
-        name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-        shutil.copy("usaha.db", f"backup/{name}")
-
-        st.success("Backup done")
