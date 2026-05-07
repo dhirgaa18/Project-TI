@@ -250,7 +250,6 @@ if not st.session_state.login:
 
     st.stop()
 
-```python id="menu-produksi"
 # ====================================
 # SIDEBAR
 # ====================================
