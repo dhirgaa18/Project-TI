@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # ====================================
-# CUSTOM CSS
+# CUSTOM CSS - EARTHY THEME
 # ====================================
 st.markdown("""
 <style>
@@ -25,9 +25,9 @@ st.markdown("""
 .stApp {
     background: linear-gradient(
         135deg,
-        #eef2ff,
-        #f8fafc,
-        #dbeafe
+        #f6f1e9,
+        #ede0d4,
+        #d6ccc2
     );
 }
 
@@ -43,47 +43,47 @@ st.markdown("""
 [data-testid="stSidebar"] {
     background: linear-gradient(
         180deg,
-        #0f172a,
-        #1e293b
+        #5c4033,
+        #7f5539
     );
-    border-right: 2px solid #334155;
+    border-right: 2px solid #b08968;
 }
 
 [data-testid="stSidebar"] * {
-    color: white;
+    color: #fffaf3;
 }
 
 /* Judul */
 h1, h2, h3 {
-    color: #0f172a;
+    color: #5c4033;
     font-weight: 700;
 }
 
-/* Metric card */
+/* Metric Card */
 [data-testid="metric-container"] {
-    background: rgba(255,255,255,0.8);
-    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(255, 250, 243, 0.75);
+    border: 1px solid rgba(176, 137, 104, 0.3);
     padding: 20px;
-    border-radius: 18px;
+    border-radius: 20px;
     backdrop-filter: blur(10px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 20px rgba(92, 64, 51, 0.08);
 }
 
 /* Form */
 form {
-    background: rgba(255,255,255,0.75);
+    background: rgba(255, 250, 243, 0.78);
     padding: 25px;
     border-radius: 20px;
     backdrop-filter: blur(10px);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    box-shadow: 0 6px 18px rgba(92, 64, 51, 0.08);
 }
 
 /* Button */
 .stButton > button {
     background: linear-gradient(
         90deg,
-        #2563eb,
-        #3b82f6
+        #6b705c,
+        #a5a58d
     );
     color: white;
     border-radius: 12px;
@@ -97,8 +97,8 @@ form {
     transform: scale(1.03);
     background: linear-gradient(
         90deg,
-        #1d4ed8,
-        #2563eb
+        #5c4033,
+        #7f5539
     );
     color: white;
 }
@@ -107,16 +107,17 @@ form {
 .stTextInput input,
 .stNumberInput input,
 .stSelectbox div[data-baseweb="select"] {
-    border-radius: 10px !important;
-    border: 1px solid #cbd5e1 !important;
-    background-color: white !important;
+    border-radius: 12px !important;
+    border: 1px solid #b7b7a4 !important;
+    background-color: #fffaf3 !important;
+    color: #5c4033 !important;
 }
 
 /* Dataframe */
 [data-testid="stDataFrame"] {
     border-radius: 15px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 15px rgba(92, 64, 51, 0.05);
 }
 
 /* Alert */
@@ -126,18 +127,18 @@ form {
 
 /* Login box */
 .login-box {
-    background: rgba(255,255,255,0.75);
+    background: rgba(255,250,243,0.75);
     padding: 30px;
     border-radius: 20px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 24px rgba(92,64,51,0.1);
 }
 
 /* Divider */
 hr {
     border: none;
     height: 1px;
-    background: #cbd5e1;
+    background: #b7b7a4;
 }
 
 </style>
