@@ -228,17 +228,36 @@ elif menu == "🏭 Produksi":
 # ==============================
 elif menu == "📦 Produk Jadi":
 
-    st.title("📦 Produk Jadi (Hasil Produksi)")
+    st.title("📦 Produk Jadi")
 
-    produksi = pd.read_sql("""
-        SELECT nama_produk,
-               SUM(jumlah) as total
-        FROM produksi
-        GROUP BY nama_produk
-    """, conn)
+    with st.form("form_produk_jadi"):
 
-    st.dataframe(produksi, use_container_width=True)
+        nama = st.text_input("Nama Produk")
+        harga_beli = st.number_input("Harga Modal", min_value=0)
+        harga_jual = st.number_input("Harga Jual", min_value=0)
+        stok = st.number_input("Stok", min_value=0)
 
+        submit = st.form_submit_button("Simpan Produk Jadi")
+
+        if submit:
+
+            cursor.execute("""
+                INSERT INTO produk (nama, harga_beli, harga_jual, stok, kategori)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                nama,
+                harga_beli,
+                harga_jual,
+                stok,
+                "Produk Jadi"
+            ))
+
+            conn.commit()
+            st.success("Produk jadi berhasil disimpan!")
+
+    # tampilkan data
+    produk_df = pd.read_sql("SELECT * FROM produk", conn)
+    st.dataframe(produk_df, use_container_width=True)
 # ==============================
 # PENJUALAN
 # ==============================
