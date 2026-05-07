@@ -193,35 +193,35 @@ elif menu == "🧪 Bahan Baku":
 # ==============================
 # PRODUKSI
 # ==============================
-elif menu == "🏭 Produksi":
+if st.button("Produksi"):
 
-    st.title("🏭 Produksi")
+    bahan_data = bahan[bahan["nama"] == bahan_pakai]
 
-    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
+    if not bahan_data.empty:
 
-    produk = st.text_input("Nama Produk")
-    jumlah = st.number_input("Jumlah Produksi", min_value=1)
+        stok_sekarang = bahan_data.iloc[0]["stok"]
 
-    bahan_pakai = st.selectbox("Pilih Bahan", bahan["nama"] if not bahan.empty else ["-"])
-    pakai_qty = st.number_input("Jumlah Bahan Dipakai", min_value=1)
+        if pakai_qty > stok_sekarang:
+            st.error("Stok bahan tidak cukup!")
+        else:
 
-    if st.button("Produksi"):
+            cursor.execute("""
+                INSERT INTO produksi (tanggal, nama_produk, jumlah)
+                VALUES (?, ?, ?)
+            """, (
+                datetime.now().strftime("%Y-%m-%d"),
+                produk,
+                jumlah
+            ))
 
-        # simpan produksi
-        cursor.execute("""
-            INSERT INTO produksi (tanggal, nama_produk, jumlah)
-            VALUES (?, ?, ?)
-        """, (datetime.now().strftime("%Y-%m-%d"), produk, jumlah))
+            cursor.execute("""
+                UPDATE bahan_baku
+                SET stok = stok - ?
+                WHERE nama = ?
+            """, (pakai_qty, bahan_pakai))
 
-        # kurangi bahan
-        cursor.execute("""
-            UPDATE bahan_baku
-            SET stok = stok - ?
-            WHERE nama = ?
-        """, (pakai_qty, bahan_pakai))
-
-        conn.commit()
-        st.success("Produksi berhasil + bahan berkurang")
+            conn.commit()
+            st.success("Produksi berhasil")
 
 # ==============================
 # PRODUK JADI
