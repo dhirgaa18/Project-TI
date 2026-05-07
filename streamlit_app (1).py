@@ -38,13 +38,57 @@ h1, h2, h3 {
 conn = sqlite3.connect("keripik.db", check_same_thread=False)
 c = conn.cursor()
 
+# ======================
+# TABLE BAHAN
+# ======================
 c.execute("""
-    INSERT INTO bahan (nama, stok, satuan)
-    VALUES (?, ?, ?)
-""", (nama, stok, "kg"))
+CREATE TABLE IF NOT EXISTS bahan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama TEXT,
+    stok REAL,
+    satuan TEXT
+)
+""")
+
+# ======================
+# TABLE PRODUK
+# ======================
+c.execute("""
+CREATE TABLE IF NOT EXISTS produk (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nama TEXT,
+    rasa TEXT,
+    stok INTEGER,
+    harga INTEGER
+)
+""")
+
+# ======================
+# TABLE PENJUALAN
+# ======================
+c.execute("""
+CREATE TABLE IF NOT EXISTS penjualan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tanggal TEXT,
+    produk TEXT,
+    jumlah INTEGER,
+    total INTEGER
+)
+""")
+
+# ======================
+# TABLE PENGELUARAN
+# ======================
+c.execute("""
+CREATE TABLE IF NOT EXISTS pengeluaran (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tanggal TEXT,
+    nama TEXT,
+    nominal INTEGER
+)
+""")
 
 conn.commit()
-
 # ======================
 # SEED DATA (FIXED 100%)
 # ======================
