@@ -274,7 +274,7 @@ menu = st.sidebar.radio(
 # ====================================
 # DASHBOARD
 # ====================================
-if menu == "Dashboard":
+if menu == "📈 Dashboard":
 
     st.title("📈 Dashboard Usaha")
 
@@ -324,20 +324,12 @@ if menu == "Dashboard":
         f"Rp {profit:,}"
     )
 
-    st.divider()
+# ====================================
+# BAHAN BAKU
+# ====================================
+elif menu == "🧪 Bahan Baku":
 
-    st.subheader("📦 Produk Hampir Habis")
-
-    stok_tipis = (
-        produk_df[produk_df["stok"] <= 5]
-        if not produk_df.empty
-        else pd.DataFrame()
-    )
-
-    st.dataframe(
-        stok_tipis,
-        use_container_width=True
-    )
+    st.title("🧪 Data Bahan Baku")
 
 # ====================================
 # BAHAN BAKU
