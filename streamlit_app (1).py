@@ -338,7 +338,7 @@ if menu == "Dashboard":
         stok_tipis,
         use_container_width=True
     )
-```python id="fitur-produksi"
+
 # ====================================
 # BAHAN BAKU
 # ====================================
