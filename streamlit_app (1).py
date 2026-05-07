@@ -146,30 +146,21 @@ menu = st.sidebar.radio(
 # ==============================
 if menu == "📈 Dashboard":
 
-    st.title("🌿 Dashboard UMKM Produksi")
+    st.title("🌿 Dashboard UMKM Pro")
 
-    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
-    produksi = pd.read_sql("SELECT * FROM produksi", conn)
     penjualan = pd.read_sql("SELECT * FROM penjualan", conn)
-    pengeluaran = pd.read_sql("SELECT * FROM pengeluaran", conn)
+    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
 
-    total_jual = penjualan["total"].sum() if not penjualan.empty else 0
-    total_keluar = pengeluaran["nominal"].sum() if not pengeluaran.empty else 0
-    profit = total_jual - total_keluar
+    omzet = penjualan["total"].sum() if not penjualan.empty else 0
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
-    col1.metric("💰 Penjualan", f"Rp {total_jual:,}")
-    col2.metric("💸 Pengeluaran", f"Rp {total_keluar:,}")
-    col3.metric("📈 Profit", f"Rp {profit:,}")
+    col1.metric("💰 Omzet", f"Rp {omzet:,}")
+    col2.metric("🧪 Total Bahan", len(bahan))
 
-    st.divider()
+    st.subheader("⚠️ Stok Kritis")
 
-    st.subheader("🧪 Bahan Baku Menipis")
     st.dataframe(bahan[bahan["stok"] <= 5], use_container_width=True)
-
-    st.subheader("🏭 Produksi Terakhir")
-    st.dataframe(produksi.tail(5), use_container_width=True)
 
 # ==============================
 # BAHAN BAKU
@@ -178,20 +169,26 @@ elif menu == "🧪 Bahan Baku":
 
     st.title("🧪 Bahan Baku")
 
-    with st.form("bahan"):
-        nama = st.text_input("Nama")
-        stok = st.number_input("Stok", min_value=0)
-        satuan = st.selectbox("Satuan", ["Kg","Gram","Liter","Pcs"])
+    bahan_df = pd.read_sql("SELECT * FROM bahan_baku", conn)
 
-        if st.form_submit_button("Tambah"):
-            cursor.execute(
-                "INSERT INTO bahan_baku VALUES (NULL,?,?,?)",
-                (nama, stok, satuan)
-            )
-            conn.commit()
-            st.success("OK")
+    edited = st.data_editor(
+        bahan_df,
+        use_container_width=True,
+        num_rows="dynamic"
+    )
 
-    st.dataframe(pd.read_sql("SELECT * FROM bahan_baku", conn))
+    if st.button("💾 Simpan Bahan"):
+        cursor.execute("DELETE FROM bahan_baku")
+        conn.commit()
+
+        for _, r in edited.iterrows():
+            cursor.execute("""
+                INSERT INTO bahan_baku (nama, stok, satuan)
+                VALUES (?, ?, ?)
+            """, (r["nama"], r["stok"], r["satuan"]))
+
+        conn.commit()
+        st.success("Bahan update")
 
 # ==============================
 # PRODUKSI
@@ -200,28 +197,47 @@ elif menu == "🏭 Produksi":
 
     st.title("🏭 Produksi")
 
-    with st.form("produksi"):
-        nama = st.text_input("Nama Produk")
-        jumlah = st.number_input("Jumlah", min_value=1)
+    bahan = pd.read_sql("SELECT * FROM bahan_baku", conn)
 
-        if st.form_submit_button("Simpan"):
-            cursor.execute(
-                "INSERT INTO produksi VALUES (NULL,?,?,?)",
-                (datetime.now().strftime("%Y-%m-%d"), nama, jumlah)
-            )
-            conn.commit()
-            st.success("Tersimpan")
+    produk = st.text_input("Nama Produk")
+    jumlah = st.number_input("Jumlah Produksi", min_value=1)
 
-    st.dataframe(pd.read_sql("SELECT * FROM produksi", conn))
+    bahan_pakai = st.selectbox("Pilih Bahan", bahan["nama"] if not bahan.empty else ["-"])
+    pakai_qty = st.number_input("Jumlah Bahan Dipakai", min_value=1)
+
+    if st.button("Produksi"):
+
+        # simpan produksi
+        cursor.execute("""
+            INSERT INTO produksi (tanggal, nama_produk, jumlah)
+            VALUES (?, ?, ?)
+        """, (datetime.now().strftime("%Y-%m-%d"), produk, jumlah))
+
+        # kurangi bahan
+        cursor.execute("""
+            UPDATE bahan_baku
+            SET stok = stok - ?
+            WHERE nama = ?
+        """, (pakai_qty, bahan_pakai))
+
+        conn.commit()
+        st.success("Produksi berhasil + bahan berkurang")
 
 # ==============================
 # PRODUK JADI
 # ==============================
 elif menu == "📦 Produk Jadi":
 
-    st.title("📦 Produk Jadi")
+    st.title("📦 Produk Jadi (Hasil Produksi)")
 
-    st.dataframe(pd.read_sql("SELECT * FROM produk", conn))
+    produksi = pd.read_sql("""
+        SELECT nama_produk,
+               SUM(jumlah) as total
+        FROM produksi
+        GROUP BY nama_produk
+    """, conn)
+
+    st.dataframe(produksi, use_container_width=True)
 
 # ==============================
 # PENJUALAN
@@ -230,49 +246,37 @@ elif menu == "🛒 Penjualan":
 
     st.title("🛒 Penjualan")
 
-    produk_df = pd.read_sql("SELECT * FROM produk", conn)
+    produk = pd.read_sql("SELECT * FROM produk", conn)
 
-    if produk_df.empty:
-        st.warning("⚠️ Belum ada produk. Tambahkan dulu di menu Produk.")
-    else:
+    if not produk.empty:
 
-        produk = st.selectbox("Pilih Produk", produk_df["nama"])
-        jumlah = st.number_input("Jumlah", min_value=1, step=1)
+        p = st.selectbox("Produk", produk["nama"])
+        j = st.number_input("Jumlah", 1)
 
-        data = produk_df[produk_df["nama"] == produk].iloc[0]
-        total = int(data["harga_jual"]) * int(jumlah)
+        data = produk[produk["nama"] == p].iloc[0]
+        total = data["harga_jual"] * j
 
-        st.info(f"💰 Total Harga: Rp {total:,}")
+        st.info(f"Total Rp {total:,}")
 
-        if st.button("💾 Simpan Penjualan"):
+        if st.button("Jual"):
 
-            try:
+            if data["stok"] < j:
+                st.error("Stok kurang")
+            else:
+
                 cursor.execute("""
-                    INSERT INTO penjualan (tanggal, produk, jumlah, total)
-                    VALUES (?, ?, ?, ?)
-                """, (
-                    datetime.now().strftime("%Y-%m-%d"),
-                    produk,
-                    jumlah,
-                    total
-                ))
+                    INSERT INTO penjualan VALUES (NULL,?,?,?,?)
+                """, (datetime.now().strftime("%Y-%m-%d"), p, j, total))
+
+                cursor.execute("""
+                    UPDATE produk
+                    SET stok = stok - ?
+                    WHERE nama = ?
+                """, (j, p))
 
                 conn.commit()
 
-                st.success("✅ Penjualan berhasil disimpan!")
-
-                # DEBUG: langsung reload data
-                st.rerun()
-
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-    st.divider()
-
-    st.subheader("📊 Data Penjualan")
-
-    penjualan_df = pd.read_sql("SELECT * FROM penjualan", conn)
-    st.dataframe(penjualan_df, use_container_width=True)
+                st.success("Penjualan berhasil")
 
 # ==============================
 # PENGELUARAN
