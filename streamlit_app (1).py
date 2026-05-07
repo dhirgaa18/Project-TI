@@ -149,8 +149,6 @@ elif menu == "Bahan Baku":
 # ======================
 elif menu == "Produksi":
 
-    elif menu == "Produksi":
-
     st.title("🏭 Produksi Keripik")
 
     bahan = pd.read_sql("SELECT * FROM bahan", conn)
