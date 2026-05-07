@@ -15,55 +15,136 @@ st.set_page_config(
     layout="wide"
 )
 
+```python
 # ====================================
 # CUSTOM CSS
 # ====================================
 st.markdown("""
 <style>
 
-.main {
-    background-color: #f5f7fb;
+/* Background utama */
+.stApp {
+    background: linear-gradient(
+        135deg,
+        #eef2ff,
+        #f8fafc,
+        #dbeafe
+    );
 }
 
+/* Container utama */
 .block-container {
     padding-top: 2rem;
+    padding-bottom: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
 }
 
+/* Sidebar */
 [data-testid="stSidebar"] {
-    background-color: #1e293b;
+    background: linear-gradient(
+        180deg,
+        #0f172a,
+        #1e293b
+    );
+    border-right: 2px solid #334155;
 }
 
 [data-testid="stSidebar"] * {
     color: white;
 }
 
+/* Judul */
 h1, h2, h3 {
-    color: #1e293b;
+    color: #0f172a;
+    font-weight: 700;
 }
 
-.stMetric {
-    background-color: white;
-    padding: 15px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
+/* Metric card */
+[data-testid="metric-container"] {
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 20px;
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
+/* Form */
+form {
+    background: rgba(255,255,255,0.75);
+    padding: 25px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* Button */
 .stButton > button {
-    background-color: #2563eb;
+    background: linear-gradient(
+        90deg,
+        #2563eb,
+        #3b82f6
+    );
     color: white;
-    border-radius: 10px;
+    border-radius: 12px;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 24px;
     font-weight: bold;
+    transition: 0.3s;
 }
 
 .stButton > button:hover {
-    background-color: #1d4ed8;
+    transform: scale(1.03);
+    background: linear-gradient(
+        90deg,
+        #1d4ed8,
+        #2563eb
+    );
     color: white;
+}
+
+/* Input */
+.stTextInput input,
+.stNumberInput input,
+.stSelectbox div[data-baseweb="select"] {
+    border-radius: 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    background-color: white !important;
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Alert */
+.stAlert {
+    border-radius: 12px;
+}
+
+/* Login box */
+.login-box {
+    background: rgba(255,255,255,0.75);
+    padding: 30px;
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+/* Divider */
+hr {
+    border: none;
+    height: 1px;
+    background: #cbd5e1;
 }
 
 </style>
 """, unsafe_allow_html=True)
+```
+
 
 # ====================================
 # DATABASE
