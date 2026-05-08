@@ -28,7 +28,6 @@ html, body, [class*="css"] {
     background: #FBF8F3;
 }
 
-/* Sidebar */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #3B2314 0%, #5C3320 100%);
     border-right: none;
@@ -50,12 +49,10 @@ html, body, [class*="css"] {
     color: #C4A882 !important;
 }
 
-/* Headings */
 h1 { color: #3B2314 !important; font-weight: 700 !important; }
 h2 { color: #5C3320 !important; font-weight: 600 !important; }
 h3 { color: #5C3320 !important; font-weight: 600 !important; }
 
-/* Metric cards */
 [data-testid="metric-container"] {
     background: white;
     border-radius: 16px;
@@ -76,7 +73,6 @@ h3 { color: #5C3320 !important; font-weight: 600 !important; }
     color: #3B2314;
 }
 
-/* Buttons */
 .stButton > button {
     background: #E8A020;
     color: #3B2314;
@@ -101,7 +97,6 @@ h3 { color: #5C3320 !important; font-weight: 600 !important; }
     transform: translateY(0);
 }
 
-/* Inputs */
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
 .stSelectbox > div > div {
@@ -110,19 +105,16 @@ h3 { color: #5C3320 !important; font-weight: 600 !important; }
     background: white !important;
 }
 
-/* Dataframe */
 [data-testid="stDataFrame"] {
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid #EDE0D0;
 }
 
-/* Divider */
 hr {
     border-color: #EDE0D0 !important;
 }
 
-/* Alert boxes */
 .stSuccess {
     border-radius: 10px;
     background: #EEF7E8 !important;
@@ -141,20 +133,17 @@ hr {
     border-left: 4px solid #E84040 !important;
 }
 
-/* Info box */
 .stInfo {
     border-radius: 10px;
     background: #FFF4E0 !important;
     border-left: 4px solid #E8A020 !important;
 }
 
-/* Tab styling */
 [data-testid="stTab"] {
     font-weight: 600;
     color: #8B6A50;
 }
 
-/* Card custom */
 .kpi-card {
     background: white;
     border-radius: 16px;
@@ -184,7 +173,6 @@ _dir = os.path.dirname(os.path.abspath(__file__)) if os.path.dirname(os.path.abs
 DB_PATH = os.path.join(_dir, "banana_crunch.db")
 
 def get_db():
-    """Selalu buat koneksi baru — hindari stale connection di Streamlit Cloud."""
     db = sqlite3.connect(DB_PATH, check_same_thread=False)
     db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA synchronous=NORMAL")
@@ -248,19 +236,17 @@ CREATE TABLE IF NOT EXISTS pengeluaran(
 
 conn.commit()
 
-# Migration: tambah kolom kategori kalau belum ada (untuk database lama)
 try:
     c.execute("ALTER TABLE pengeluaran ADD COLUMN kategori TEXT DEFAULT 'Lainnya'")
     conn.commit()
 except Exception:
-    pass  # kolom sudah ada, skip
+    pass
 
 # =====================================================
 # HELPERS: DB READ / WRITE
-# (didefinisikan di sini agar bisa dipakai oleh SEED DATA di bawah)
+# (harus didefinisikan sebelum SEED DATA)
 # =====================================================
 def db_write(queries_params):
-    """Tulis ke DB dengan koneksi fresh + WAL mode agar langsung terbaca."""
     fresh = get_db()
     try:
         for q, p in queries_params:
@@ -274,7 +260,6 @@ def db_write(queries_params):
         fresh.close()
 
 def db_read(query):
-    """Baca DB selalu dengan koneksi fresh agar tidak kena cache lama."""
     fresh = get_db()
     try:
         df = pd.read_sql(query, fresh)
@@ -299,7 +284,7 @@ if cek["jumlah"][0] == 0:
     conn.commit()
 
 # =====================================================
-# FIX DATA LAMA: update total=0 di penjualan
+# FIX DATA LAMA
 # =====================================================
 rows_nol = conn.execute("SELECT id, produk, qty FROM penjualan WHERE total = 0 OR total IS NULL").fetchall()
 for rid, nama_prod, qty_prod in rows_nol:
@@ -381,9 +366,8 @@ def format_rp(angka):
     return f"Rp {angka:,.0f}".replace(",", ".")
 
 def get_bulan_list():
-    bulan_names = ["Januari","Februari","Maret","April","Mei","Juni",
-                   "Juli","Agustus","September","Oktober","November","Desember"]
-    return bulan_names
+    return ["Januari","Februari","Maret","April","Mei","Juni",
+            "Juli","Agustus","September","Oktober","November","Desember"]
 
 # =====================================================
 # DASHBOARD
@@ -401,19 +385,16 @@ if menu == "🏠 Dashboard":
 
     if not penjualan.empty:
         penjualan["total"] = pd.to_numeric(penjualan["total"], errors="coerce").fillna(0)
-        omzet_total = penjualan["total"].sum()
         omzet_bulan = penjualan[penjualan["tanggal"].str.startswith(bulan_ini)]["total"].sum()
     else:
-        omzet_total = omzet_bulan = 0
+        omzet_bulan = 0
 
     if not pengeluaran.empty:
         pengeluaran["nominal"] = pd.to_numeric(pengeluaran["nominal"], errors="coerce").fillna(0)
-        keluar_total = pengeluaran["nominal"].sum()
         keluar_bulan = pengeluaran[pengeluaran["tanggal"].str.startswith(bulan_ini)]["nominal"].sum()
     else:
-        keluar_total = keluar_bulan = 0
+        keluar_bulan = 0
 
-    laba_total = omzet_total - keluar_total
     laba_bulan = omzet_bulan - keluar_bulan
 
     col1, col2, col3, col4 = st.columns(4)
@@ -430,8 +411,7 @@ if menu == "🏠 Dashboard":
         st.markdown("### 📈 Tren Penjualan Harian")
         if not penjualan.empty:
             chart_data = penjualan.groupby("tanggal")["total"].sum().reset_index()
-            chart_data = chart_data.sort_values("tanggal")
-            chart_data = chart_data.set_index("tanggal")
+            chart_data = chart_data.sort_values("tanggal").set_index("tanggal")
             st.line_chart(chart_data, use_container_width=True, height=250, color="#E8A020")
         else:
             st.info("Belum ada data penjualan")
@@ -485,7 +465,6 @@ elif menu == "🧪 Bahan Baku":
         with col2:
             satuan = st.selectbox("Satuan", ["kg", "liter", "pcs", "tabung", "gram", "ml"])
             st.markdown("<br>", unsafe_allow_html=True)
-
             if st.button("💾 Simpan Bahan", use_container_width=True):
                 if nama_bahan.strip():
                     existing = db_read(f"SELECT * FROM bahan WHERE LOWER(nama) = LOWER('{nama_bahan}')")
@@ -568,9 +547,9 @@ elif menu == "🏭 Produksi":
                     break
 
             if cukup:
-                nama_produk = f"Keripik {jenis} {rasa}"
+                nama_produk  = f"Keripik {jenis} {rasa}"
                 hasil_produk = int(jumlah * 10)
-                harga = 15000 if jenis == "Pisang Raja" else 12000
+                harga        = 15000 if jenis == "Pisang Raja" else 12000
                 tanggal_prod = datetime.now().strftime("%Y-%m-%d")
 
                 queries = []
@@ -595,17 +574,81 @@ elif menu == "🏭 Produksi":
                     st.success(f"✅ Produksi berhasil! {hasil_produk} bungkus {nama_produk} siap dijual.")
                     st.balloons()
 
+        # ── Riwayat Produksi ──────────────────────────
     with tab2:
-        riwayat = db_read("""
-            SELECT tanggal as 'Tanggal', jenis as 'Jenis', rasa as 'Rasa',
-                   jumlah as 'Pisang (kg)', CAST(jumlah*10 AS INT) as 'Hasil (bungkus)'
-            FROM produksi ORDER BY id DESC
-        """)
-        if riwayat.empty:
-            st.info("Belum ada riwayat produksi")
-        else:
-            st.dataframe(riwayat, use_container_width=True, hide_index=True)
 
+        produksi = db_read("""
+            SELECT id, tanggal, jenis, rasa, jumlah
+            FROM produksi
+            ORDER BY id DESC
+        """)
+
+        if produksi.empty:
+            st.info("Belum ada data produksi")
+
+        else:
+
+            tampil = produksi.copy()
+
+            tampil.columns = [
+                "ID",
+                "Tanggal",
+                "Jenis Pisang",
+                "Rasa",
+                "Jumlah (kg)"
+            ]
+
+            st.dataframe(
+                tampil,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("---")
+            st.markdown("#### 🗑️ Hapus Riwayat Produksi")
+
+            col1, col2 = st.columns([3,1])
+
+            with col1:
+
+                pilihan = produksi.apply(
+                    lambda r:
+                    f"[{r['id']}] "
+                    f"{r['tanggal']} - "
+                    f"{r['jenis']} "
+                    f"{r['rasa']} "
+                    f"({r['jumlah']} kg)",
+                    axis=1
+                ).tolist()
+
+                pilih_hapus = st.selectbox(
+                    "Pilih data produksi",
+                    pilihan
+                )
+
+            with col2:
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                if st.button(
+                    "🗑️ Hapus Produksi",
+                    use_container_width=True
+                ):
+
+                    id_hapus = int(
+                        pilih_hapus.split("]")[0].replace("[","")
+                    )
+
+                    ok = db_write([
+                        (
+                            "DELETE FROM produksi WHERE id = ?",
+                            (id_hapus,)
+                        )
+                    ])
+
+                    if ok:
+                        st.success("✅ Data produksi dihapus!")
+                        st.rerun()
 # =====================================================
 # PRODUK JADI
 # =====================================================
@@ -646,7 +689,6 @@ elif menu == "📦 Produk Jadi":
 
         st.divider()
         st.markdown("### 📋 Tabel Produk")
-
         tabel = produk[["nama", "jenis", "rasa", "stok", "harga"]].copy()
         tabel.columns = ["Nama Produk", "Jenis", "Rasa", "Stok (bungkus)", "Harga (Rp)"]
         tabel["Harga (Rp)"] = pd.to_numeric(tabel["Harga (Rp)"], errors="coerce").fillna(0).apply(lambda x: f"Rp {x:,.0f}")
@@ -684,12 +726,11 @@ elif menu == "🛒 Penjualan":
             col1, col2 = st.columns(2)
             with col1:
                 pilih = st.selectbox("Pilih Produk", produk["nama"])
-                row = produk[produk["nama"] == pilih].iloc[0]
+                row   = produk[produk["nama"] == pilih].iloc[0]
             with col2:
                 qty = st.number_input("Jumlah (bungkus)", min_value=1, max_value=int(row["stok"]))
 
             total = int(qty) * int(row["harga"])
-
             st.markdown(f"""
             <div style='background:#FFF4E0; border-radius:12px; padding:16px 20px;
                         border:1px solid #F5D08A; margin:16px 0;'>
@@ -738,19 +779,44 @@ elif menu == "🛒 Penjualan":
                     finally:
                         conn_insert.close()
 
+    # ── Riwayat Penjualan + Hapus ─────────────────────────
     with tab2:
         penjualan = db_read("""
-            SELECT tanggal as 'Tanggal', produk as 'Produk',
-                   qty as 'Qty', total as 'Total (Rp)'
+            SELECT id, tanggal, produk, qty, total
             FROM penjualan ORDER BY id DESC LIMIT 100
         """)
 
         if penjualan.empty:
             st.info("Belum ada riwayat penjualan")
         else:
-            penjualan["Total (Rp)"] = pd.to_numeric(penjualan["Total (Rp)"], errors="coerce").fillna(0)
-            penjualan["Total (Rp)"] = penjualan["Total (Rp)"].apply(lambda x: f"Rp {x:,.0f}")
-            st.dataframe(penjualan, use_container_width=True, hide_index=True)
+            tampil = penjualan[["tanggal","produk","qty","total"]].copy()
+            tampil.columns = ["Tanggal","Produk","Qty","Total (Rp)"]
+            tampil["Total (Rp)"] = pd.to_numeric(tampil["Total (Rp)"], errors="coerce").fillna(0).apply(lambda x: f"Rp {x:,.0f}")
+            st.dataframe(tampil, use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown("#### 🗑️ Hapus Riwayat Penjualan")
+            st.caption("⚠️ Menghapus data penjualan akan otomatis mengembalikan stok produk.")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                pilihan_jual = penjualan.apply(
+                    lambda r: f"[{r['id']}] {r['tanggal']} — {r['produk']} x{int(r['qty'])} ({format_rp(r['total'])})",
+                    axis=1
+                ).tolist()
+                hapus_jual = st.selectbox("Pilih data yang ingin dihapus", pilihan_jual, key="hapus_penjualan")
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("🗑️ Hapus", key="btn_hapus_penjualan", use_container_width=True):
+                    id_hapus = int(hapus_jual.split("]")[0].replace("[", ""))
+                    baris    = penjualan[penjualan["id"] == id_hapus].iloc[0]
+                    ok = db_write([
+                        ("UPDATE produk SET stok = stok + ? WHERE nama = ?",
+                         (int(baris["qty"]), str(baris["produk"]))),
+                        ("DELETE FROM penjualan WHERE id = ?", (id_hapus,))
+                    ])
+                    if ok:
+                        st.success("✅ Data penjualan dihapus & stok dikembalikan!")
+                        st.rerun()
 
 # =====================================================
 # PENGELUARAN
@@ -764,9 +830,9 @@ elif menu == "💸 Pengeluaran":
         col1, col2 = st.columns(2)
         with col1:
             nama_keluar = st.text_input("Keterangan", placeholder="cth: Beli minyak goreng")
-            nominal = st.number_input("Nominal (Rp)", min_value=0, step=1000)
+            nominal     = st.number_input("Nominal (Rp)", min_value=0, step=1000)
         with col2:
-            kategori = st.selectbox("Kategori", [
+            kategori       = st.selectbox("Kategori", [
                 "Bahan Baku", "Operasional", "Gaji", "Transportasi",
                 "Pemasaran", "Peralatan", "Lainnya"
             ])
@@ -781,10 +847,10 @@ elif menu == "💸 Pengeluaran":
             else:
                 st.error("Keterangan dan nominal harus diisi!")
 
+    # ── Riwayat Pengeluaran + Hapus ───────────────────────
     with tab2:
         data_keluar = db_read("""
-            SELECT tanggal as 'Tanggal', nama as 'Keterangan',
-                   kategori as 'Kategori', nominal as 'Nominal (Rp)'
+            SELECT id, tanggal, nama, kategori, nominal
             FROM pengeluaran ORDER BY id DESC
         """)
 
@@ -802,8 +868,28 @@ elif menu == "💸 Pengeluaran":
             st.dataframe(summary, use_container_width=True, hide_index=True)
 
             st.divider()
-            data_keluar["Nominal (Rp)"] = pd.to_numeric(data_keluar["Nominal (Rp)"], errors="coerce").fillna(0).apply(lambda x: f"Rp {x:,.0f}")
-            st.dataframe(data_keluar, use_container_width=True, hide_index=True)
+            tampil_k = data_keluar[["tanggal","nama","kategori","nominal"]].copy()
+            tampil_k.columns = ["Tanggal","Keterangan","Kategori","Nominal (Rp)"]
+            tampil_k["Nominal (Rp)"] = pd.to_numeric(tampil_k["Nominal (Rp)"], errors="coerce").fillna(0).apply(lambda x: f"Rp {x:,.0f}")
+            st.dataframe(tampil_k, use_container_width=True, hide_index=True)
+
+            st.markdown("---")
+            st.markdown("#### 🗑️ Hapus Riwayat Pengeluaran")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                pilihan_keluar = data_keluar.apply(
+                    lambda r: f"[{r['id']}] {r['tanggal']} — {r['nama']} ({format_rp(r['nominal'])})",
+                    axis=1
+                ).tolist()
+                hapus_keluar = st.selectbox("Pilih data yang ingin dihapus", pilihan_keluar, key="hapus_pengeluaran")
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("🗑️ Hapus", key="btn_hapus_pengeluaran", use_container_width=True):
+                    id_hapus = int(hapus_keluar.split("]")[0].replace("[", ""))
+                    ok = db_write([("DELETE FROM pengeluaran WHERE id = ?", (id_hapus,))])
+                    if ok:
+                        st.success("✅ Data pengeluaran dihapus!")
+                        st.rerun()
 
 # =====================================================
 # LAPORAN BULANAN
@@ -822,7 +908,7 @@ elif menu == "📊 Laporan Bulanan":
                                     index=now.month - 1,
                                     format_func=lambda x: bulan_names[x-1])
 
-    prefix = f"{tahun_pilih}-{bulan_pilih:02d}"
+    prefix     = f"{tahun_pilih}-{bulan_pilih:02d}"
     nama_bulan = f"{bulan_names[bulan_pilih-1]} {tahun_pilih}"
 
     st.markdown(f"### 📅 Laporan {nama_bulan}")
@@ -834,7 +920,7 @@ elif menu == "📊 Laporan Bulanan":
 
     if not penjualan_b.empty:
         penjualan_b["total"] = pd.to_numeric(penjualan_b["total"], errors="coerce").fillna(0)
-        omzet_b = penjualan_b["total"].sum()
+        omzet_b       = penjualan_b["total"].sum()
         total_terjual = penjualan_b["qty"].sum()
     else:
         omzet_b = total_terjual = 0
@@ -845,7 +931,7 @@ elif menu == "📊 Laporan Bulanan":
     else:
         keluar_b = 0
 
-    laba_b = omzet_b - keluar_b
+    laba_b           = omzet_b - keluar_b
     total_produksi_b = produksi_b["jumlah"].sum() if not produksi_b.empty else 0
 
     c1, c2, c3, c4 = st.columns(4)
@@ -856,7 +942,6 @@ elif menu == "📊 Laporan Bulanan":
     c4.metric("📦 Terjual", f"{int(total_terjual)} bungkus")
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     col_l, col_r = st.columns(2)
 
     with col_l:
@@ -881,8 +966,8 @@ elif menu == "📊 Laporan Bulanan":
 
     st.markdown("#### 📋 Detail Penjualan")
     if not penjualan_b.empty:
-        tampil = penjualan_b[["tanggal", "produk", "qty", "total"]].copy()
-        tampil.columns = ["Tanggal", "Produk", "Qty", "Total"]
+        tampil = penjualan_b[["tanggal","produk","qty","total"]].copy()
+        tampil.columns = ["Tanggal","Produk","Qty","Total"]
         tampil["Total"] = tampil["Total"].apply(format_rp)
         st.dataframe(tampil, use_container_width=True, hide_index=True)
     else:
@@ -890,8 +975,8 @@ elif menu == "📊 Laporan Bulanan":
 
     st.markdown("#### 📋 Detail Pengeluaran")
     if not pengeluaran_b.empty:
-        tampil_k = pengeluaran_b[["tanggal", "nama", "kategori", "nominal"]].copy()
-        tampil_k.columns = ["Tanggal", "Keterangan", "Kategori", "Nominal"]
+        tampil_k = pengeluaran_b[["tanggal","nama","kategori","nominal"]].copy()
+        tampil_k.columns = ["Tanggal","Keterangan","Kategori","Nominal"]
         tampil_k["Nominal"] = tampil_k["Nominal"].apply(format_rp)
         st.dataframe(tampil_k, use_container_width=True, hide_index=True)
     else:
