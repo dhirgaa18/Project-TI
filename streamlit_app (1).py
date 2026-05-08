@@ -236,6 +236,13 @@ CREATE TABLE IF NOT EXISTS pengeluaran(
 
 conn.commit()
 
+# Migration: tambah kolom kategori kalau belum ada (untuk database lama)
+try:
+    c.execute("ALTER TABLE pengeluaran ADD COLUMN kategori TEXT DEFAULT 'Lainnya'")
+    conn.commit()
+except Exception:
+    pass  # kolom sudah ada, skip
+
 # =====================================================
 # SEED DATA
 # =====================================================
