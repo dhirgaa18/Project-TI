@@ -180,15 +180,13 @@ hr {
 # =====================================================
 import os
 
-# Streamlit Cloud: pakai /tmp yang pasti writable
-# Lokal: pakai folder yang sama dengan script
 _dir = os.path.dirname(os.path.abspath(__file__)) if os.path.dirname(os.path.abspath(__file__)) else "/tmp"
 DB_PATH = os.path.join(_dir, "banana_crunch.db")
 
 def get_db():
     """Selalu buat koneksi baru — hindari stale connection di Streamlit Cloud."""
     db = sqlite3.connect(DB_PATH, check_same_thread=False)
-    db.execute("PRAGMA journal_mode=WAL")   # izinkan concurrent read/write
+    db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA synchronous=NORMAL")
     return db
 
@@ -256,6 +254,33 @@ try:
     conn.commit()
 except Exception:
     pass  # kolom sudah ada, skip
+
+# =====================================================
+# HELPERS: DB READ / WRITE
+# (didefinisikan di sini agar bisa dipakai oleh SEED DATA di bawah)
+# =====================================================
+def db_write(queries_params):
+    """Tulis ke DB dengan koneksi fresh + WAL mode agar langsung terbaca."""
+    fresh = get_db()
+    try:
+        for q, p in queries_params:
+            fresh.execute(q, p)
+        fresh.commit()
+        return True
+    except Exception as e:
+        st.error(f"Database error: {e}")
+        return False
+    finally:
+        fresh.close()
+
+def db_read(query):
+    """Baca DB selalu dengan koneksi fresh agar tidak kena cache lama."""
+    fresh = get_db()
+    try:
+        df = pd.read_sql(query, fresh)
+        return df
+    finally:
+        fresh.close()
 
 # =====================================================
 # SEED DATA
@@ -350,7 +375,7 @@ with st.sidebar:
         st.rerun()
 
 # =====================================================
-# HELPERS
+# HELPERS (non-DB)
 # =====================================================
 def format_rp(angka):
     return f"Rp {angka:,.0f}".replace(",", ".")
@@ -360,33 +385,6 @@ def get_bulan_list():
                    "Juli","Agustus","September","Oktober","November","Desember"]
     return bulan_names
 
-
-# =====================================================
-# HELPER: WRITE KE DATABASE
-# =====================================================
-def db_write(queries_params):
-    """Tulis ke DB dengan koneksi fresh + WAL mode agar langsung terbaca."""
-    fresh = get_db()
-    try:
-        for q, p in queries_params:
-            fresh.execute(q, p)
-        fresh.commit()
-        return True
-    except Exception as e:
-        st.error(f"Database error: {e}")
-        return False
-    finally:
-        fresh.close()
-
-def db_read(query):
-    """Baca DB selalu dengan koneksi fresh agar tidak kena cache lama."""
-    fresh = get_db()
-    try:
-        df = pd.read_sql(query, fresh)
-        return df
-    finally:
-        fresh.close()
-
 # =====================================================
 # DASHBOARD
 # =====================================================
@@ -394,12 +392,11 @@ if menu == "🏠 Dashboard":
     st.markdown("## 🏠 Dashboard")
     st.markdown(f"<p style='color:#8B6A50; margin-top:-12px;'>Selamat datang kembali! — {datetime.now().strftime('%d %B %Y')}</p>", unsafe_allow_html=True)
 
-    bahan    = db_read("SELECT * FROM bahan")
-    produk   = db_read("SELECT * FROM produk")
-    penjualan = db_read("SELECT * FROM penjualan")
+    bahan       = db_read("SELECT * FROM bahan")
+    produk      = db_read("SELECT * FROM produk")
+    penjualan   = db_read("SELECT * FROM penjualan")
     pengeluaran = db_read("SELECT * FROM pengeluaran")
 
-    # Hitung bulan ini
     bulan_ini = datetime.now().strftime("%Y-%m")
 
     if not penjualan.empty:
@@ -419,7 +416,6 @@ if menu == "🏠 Dashboard":
     laba_total = omzet_total - keluar_total
     laba_bulan = omzet_bulan - keluar_bulan
 
-    # KPI Cards
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("💰 Omzet Bulan Ini", format_rp(omzet_bulan))
     col2.metric("💸 Pengeluaran Bulan Ini", format_rp(keluar_bulan))
@@ -460,13 +456,11 @@ if menu == "🏠 Dashboard":
 
     st.divider()
 
-    # Stok minim
     stok_minim = bahan[bahan["stok"] < 5]
     if not stok_minim.empty:
         st.warning(f"⚠️ **{len(stok_minim)} bahan** hampir habis! Segera lakukan restok.")
         st.dataframe(stok_minim[["nama", "stok", "satuan"]], use_container_width=True, hide_index=True)
 
-    # Penjualan per produk
     if not penjualan.empty:
         st.markdown("### 🏆 Penjualan per Produk")
         per_produk = penjualan.groupby("produk")["total"].sum().reset_index()
@@ -494,7 +488,6 @@ elif menu == "🧪 Bahan Baku":
 
             if st.button("💾 Simpan Bahan", use_container_width=True):
                 if nama_bahan.strip():
-                    # Cek apakah bahan sudah ada
                     existing = db_read(f"SELECT * FROM bahan WHERE LOWER(nama) = LOWER('{nama_bahan}')")
                     if not existing.empty:
                         ok = db_write([("UPDATE bahan SET stok = stok + ? WHERE LOWER(nama) = LOWER(?)", (float(stok_bahan), str(nama_bahan)))])
@@ -542,7 +535,6 @@ elif menu == "🏭 Produksi":
         with col2:
             jumlah = st.number_input("Jumlah Pisang (kg)", min_value=1.0, step=0.5)
 
-        # Preview kebutuhan
         kebutuhan_list = [
             (jenis, jumlah, "kg"),
             ("Minyak Goreng", round(jumlah * 0.2, 2), "liter"),
@@ -587,7 +579,6 @@ elif menu == "🏭 Produksi":
                 queries.append(("INSERT INTO produksi(tanggal, jenis, rasa, jumlah) VALUES(?,?,?,?)",
                                 (tanggal_prod, str(jenis), str(rasa), float(jumlah))))
 
-                # Cek produk langsung dari DB
                 fresh_check = get_db()
                 cek_p = fresh_check.execute("SELECT id FROM produk WHERE nama = ?", (nama_produk,)).fetchone()
                 fresh_check.close()
@@ -626,7 +617,6 @@ elif menu == "📦 Produk Jadi":
     if produk.empty:
         st.info("Belum ada produk. Lakukan produksi terlebih dahulu.")
     else:
-        # Cards per produk
         cols = st.columns(len(produk) if len(produk) <= 3 else 3)
         for i, (_, row) in enumerate(produk.iterrows()):
             with cols[i % 3]:
@@ -724,7 +714,6 @@ elif menu == "🛒 Penjualan":
                 if qty > row["stok"]:
                     st.error("❌ Stok tidak mencukupi!")
                 else:
-                    # Buka koneksi baru khusus untuk insert agar tidak ada masalah cache/state
                     conn_insert = sqlite3.connect(DB_PATH, check_same_thread=False)
                     try:
                         harga_db = conn_insert.execute(
@@ -741,7 +730,6 @@ elif menu == "🛒 Penjualan":
                             (int(qty), str(pilih))
                         )
                         conn_insert.commit()
-                        # Reset koneksi utama agar read fresh
                         st.session_state.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
                         st.success(f"✅ Penjualan {int(qty)} bungkus {pilih} berhasil! {format_rp(total_bersih)}")
                         st.balloons()
@@ -803,7 +791,6 @@ elif menu == "💸 Pengeluaran":
         if data_keluar.empty:
             st.info("Belum ada data pengeluaran")
         else:
-            # Summary per kategori
             st.markdown("#### 📊 Ringkasan per Kategori")
             summary = db_read("""
                 SELECT kategori as 'Kategori',
@@ -841,12 +828,9 @@ elif menu == "📊 Laporan Bulanan":
     st.markdown(f"### 📅 Laporan {nama_bulan}")
     st.divider()
 
-    penjualan_b = db_read(
-        f"SELECT * FROM penjualan WHERE tanggal LIKE '{prefix}%'")
-    pengeluaran_b = db_read(
-        f"SELECT * FROM pengeluaran WHERE tanggal LIKE '{prefix}%'")
-    produksi_b = db_read(
-        f"SELECT * FROM produksi WHERE tanggal LIKE '{prefix}%'")
+    penjualan_b   = db_read(f"SELECT * FROM penjualan WHERE tanggal LIKE '{prefix}%'")
+    pengeluaran_b = db_read(f"SELECT * FROM pengeluaran WHERE tanggal LIKE '{prefix}%'")
+    produksi_b    = db_read(f"SELECT * FROM produksi WHERE tanggal LIKE '{prefix}%'")
 
     if not penjualan_b.empty:
         penjualan_b["total"] = pd.to_numeric(penjualan_b["total"], errors="coerce").fillna(0)
@@ -864,7 +848,6 @@ elif menu == "📊 Laporan Bulanan":
     laba_b = omzet_b - keluar_b
     total_produksi_b = produksi_b["jumlah"].sum() if not produksi_b.empty else 0
 
-    # KPI
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("💰 Omzet", format_rp(omzet_b))
     c2.metric("💸 Pengeluaran", format_rp(keluar_b))
@@ -896,7 +879,6 @@ elif menu == "📊 Laporan Bulanan":
 
     st.divider()
 
-    # Detail tabel
     st.markdown("#### 📋 Detail Penjualan")
     if not penjualan_b.empty:
         tampil = penjualan_b[["tanggal", "produk", "qty", "total"]].copy()
@@ -915,7 +897,6 @@ elif menu == "📊 Laporan Bulanan":
     else:
         st.info("Tidak ada data pengeluaran")
 
-    # Ringkasan teks
     st.divider()
     st.markdown("#### 📝 Ringkasan Otomatis")
     status = "UNTUNG 📈" if laba_b >= 0 else "RUGI 📉"
