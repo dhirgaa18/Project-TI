@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import calendar
+import os
 
 # =====================================================
 # CONFIG
@@ -167,8 +168,6 @@ hr {
 # =====================================================
 # DATABASE
 # =====================================================
-import os
-
 _dir = os.path.dirname(os.path.abspath(__file__)) if os.path.dirname(os.path.abspath(__file__)) else "/tmp"
 DB_PATH = os.path.join(_dir, "banana_crunch.db")
 
@@ -244,7 +243,6 @@ except Exception:
 
 # =====================================================
 # HELPERS: DB READ / WRITE
-# (harus didefinisikan sebelum SEED DATA)
 # =====================================================
 def db_write(queries_params):
     fresh = get_db()
@@ -649,6 +647,7 @@ elif menu == "🏭 Produksi":
                     if ok:
                         st.success("✅ Data produksi dihapus!")
                         st.rerun()
+
 # =====================================================
 # PRODUK JADI
 # =====================================================
@@ -1000,6 +999,54 @@ elif menu == "📊 Laporan Bulanan":
     </div>
     """, unsafe_allow_html=True)
 
+    # ==========================================
+    # FITUR EKSPOR DATA (UNTUK STREAMLIT CLOUD)
+    # ==========================================
+    st.divider()
+    st.markdown("### 📥 Ekspor Laporan Bulanan")
+    
+    col_dl1, col_dl2 = st.columns(2)
+    
+    with col_dl1:
+        if not penjualan_b.empty:
+            # Mengubah dataframe pandas menjadi format CSV
+            csv_penjualan = tampil.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Unduh Data Penjualan (CSV)",
+                data=csv_penjualan,
+                file_name=f"Laporan_Penjualan_{prefix}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.download_button(
+                label="📥 Unduh Data Penjualan (CSV)",
+                data="",
+                file_name=f"Laporan_Penjualan_{prefix}.csv",
+                disabled=True,
+                use_container_width=True
+            )
+
+    with col_dl2:
+        if not pengeluaran_b.empty:
+            # Mengubah dataframe pandas menjadi format CSV
+            csv_pengeluaran = tampil_k.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Unduh Data Pengeluaran (CSV)",
+                data=csv_pengeluaran,
+                file_name=f"Laporan_Pengeluaran_{prefix}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.download_button(
+                label="📥 Unduh Data Pengeluaran (CSV)",
+                data="",
+                file_name=f"Laporan_Pengeluaran_{prefix}.csv",
+                disabled=True,
+                use_container_width=True
+            )
+
 # =====================================================
 # PROFIL UMKM
 # =====================================================
@@ -1017,7 +1064,7 @@ elif menu == "👤 Profil UMKM":
             <p style='color:#8B6A50; font-size:14px; margin:0;'>UMKM Keripik Pisang</p>
             <div style='margin:16px 0;'>
                 <span style='background:#FFF4E0; color:#E8A020; padding:4px 12px;
-                             border-radius:20px; font-size:12px; font-weight:600;'>
+                              border-radius:20px; font-size:12px; font-weight:600;'>
                     ✅ Aktif Beroperasi
                 </span>
             </div>
