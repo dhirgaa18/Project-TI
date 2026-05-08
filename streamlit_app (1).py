@@ -369,6 +369,10 @@ def get_bulan_list():
     return ["Januari","Februari","Maret","April","Mei","Juni",
             "Juli","Agustus","September","Oktober","November","Desember"]
 
+@st.cache_data
+def convert_df_to_csv(df):
+    return df.to_csv(index=False).encode('utf-8')
+
 # =====================================================
 # DASHBOARD
 # =====================================================
@@ -1000,6 +1004,54 @@ elif menu == "📊 Laporan Bulanan":
     </div>
     """, unsafe_allow_html=True)
 
+    # ==========================================
+    # FITUR EKSPOR DATA (BARU DITAMBAHKAN)
+    # ==========================================
+    st.divider()
+    st.markdown("### 📥 Ekspor Laporan Bulanan")
+    
+    col_dl1, col_dl2 = st.columns(2)
+    
+    with col_dl1:
+        if not penjualan_b.empty:
+            csv_penjualan = convert_df_to_csv(tampil)
+            st.download_button(
+                label="📥 Unduh Data Penjualan (CSV)",
+                data=csv_penjualan,
+                file_name=f"Laporan_Penjualan_{prefix}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.download_button(
+                label="📥 Unduh Data Penjualan (CSV)",
+                data="",
+                file_name=f"Laporan_Penjualan_{prefix}.csv",
+                disabled=True,
+                use_container_width=True,
+                help="Belum ada data penjualan di bulan ini."
+            )
+
+    with col_dl2:
+        if not pengeluaran_b.empty:
+            csv_pengeluaran = convert_df_to_csv(tampil_k)
+            st.download_button(
+                label="📥 Unduh Data Pengeluaran (CSV)",
+                data=csv_pengeluaran,
+                file_name=f"Laporan_Pengeluaran_{prefix}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        else:
+            st.download_button(
+                label="📥 Unduh Data Pengeluaran (CSV)",
+                data="",
+                file_name=f"Laporan_Pengeluaran_{prefix}.csv",
+                disabled=True,
+                use_container_width=True,
+                help="Belum ada data pengeluaran di bulan ini."
+            )
+
 # =====================================================
 # PROFIL UMKM
 # =====================================================
@@ -1017,7 +1069,7 @@ elif menu == "👤 Profil UMKM":
             <p style='color:#8B6A50; font-size:14px; margin:0;'>UMKM Keripik Pisang</p>
             <div style='margin:16px 0;'>
                 <span style='background:#FFF4E0; color:#E8A020; padding:4px 12px;
-                             border-radius:20px; font-size:12px; font-weight:600;'>
+                              border-radius:20px; font-size:12px; font-weight:600;'>
                     ✅ Aktif Beroperasi
                 </span>
             </div>
