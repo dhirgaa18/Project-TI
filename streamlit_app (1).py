@@ -922,6 +922,6 @@ elif menu == "👤 Profil UMKM":
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
     <p style='text-align:center; color:#C4A882; font-size:13px;'>
-        Dibuat dengan ❤️ menggunakan Streamlit • BananaCrunch © 2024
+        Dibuat dengan ❤️ menggunakan Streamlit • BananaCrunch © 2026
     </p>
     """, unsafe_allow_html=True)
