@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import calendar
+import os
 
 # =====================================================
 # CONFIG
@@ -167,8 +168,6 @@ hr {
 # =====================================================
 # DATABASE
 # =====================================================
-import os
-
 _dir = os.path.dirname(os.path.abspath(__file__)) if os.path.dirname(os.path.abspath(__file__)) else "/tmp"
 DB_PATH = os.path.join(_dir, "banana_crunch.db")
 
@@ -244,7 +243,6 @@ except Exception:
 
 # =====================================================
 # HELPERS: DB READ / WRITE
-# (harus didefinisikan sebelum SEED DATA)
 # =====================================================
 def db_write(queries_params):
     fresh = get_db()
@@ -1000,6 +998,35 @@ elif menu == "📊 Laporan Bulanan":
     </div>
     """, unsafe_allow_html=True)
 
+    # ==========================================
+    # FITUR EKSPOR DATA (LANGSUNG KE FOLDER LOKAL)
+    # ==========================================
+    st.divider()
+    st.markdown("### 📥 Ekspor Laporan Bulanan (Lokal)")
+    
+    # Menentukan lokasi folder penyimpanan (bisa diubah sesuai keinginan)
+    save_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    col_dl1, col_dl2 = st.columns(2)
+    
+    with col_dl1:
+        if not penjualan_b.empty:
+            if st.button("💾 Simpan Data Penjualan ke Folder", use_container_width=True):
+                file_path = os.path.join(save_dir, f"Laporan_Penjualan_{prefix}.csv")
+                tampil.to_csv(file_path, index=False)
+                st.success(f"File berhasil disimpan di: {file_path}")
+        else:
+            st.button("💾 Simpan Data Penjualan ke Folder", disabled=True, use_container_width=True)
+
+    with col_dl2:
+        if not pengeluaran_b.empty:
+            if st.button("💾 Simpan Data Pengeluaran ke Folder", use_container_width=True):
+                file_path = os.path.join(save_dir, f"Laporan_Pengeluaran_{prefix}.csv")
+                tampil_k.to_csv(file_path, index=False)
+                st.success(f"File berhasil disimpan di: {file_path}")
+        else:
+            st.button("💾 Simpan Data Pengeluaran ke Folder", disabled=True, use_container_width=True)
+
 # =====================================================
 # PROFIL UMKM
 # =====================================================
@@ -1017,7 +1044,7 @@ elif menu == "👤 Profil UMKM":
             <p style='color:#8B6A50; font-size:14px; margin:0;'>UMKM Keripik Pisang</p>
             <div style='margin:16px 0;'>
                 <span style='background:#FFF4E0; color:#E8A020; padding:4px 12px;
-                             border-radius:20px; font-size:12px; font-weight:600;'>
+                              border-radius:20px; font-size:12px; font-weight:600;'>
                     ✅ Aktif Beroperasi
                 </span>
             </div>
